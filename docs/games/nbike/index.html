@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Nbike · 山道自行车竞速</title>
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<canvas id="gl"></canvas>
+<!-- 速度感叠加层：真·径向模糊（把上一帧画面按径向拉丝） -->
+<canvas id="speedFx" class="speed-fx"></canvas>
+
+<!-- ===================== 载入层 ===================== -->
+<div id="loading">
+  <div class="ld-inner">
+    <div class="ld-logo">Nbike</div>
+    <div class="ld-sub">环法风格山道竞速 · Alpine Stage</div>
+    <div class="ld-bar"><i id="ldBar"></i></div>
+    <div class="ld-msg" id="ldMsg">正在生成赛道与地形…</div>
+    <div class="ld-stats" id="ldStats"></div>
+  </div>
+</div>
+
+<!-- ===================== 错误层 ===================== -->
+<div id="fatal" hidden><div class="ft-inner"><b>启动失败</b><pre id="fatalMsg"></pre></div></div>
+
+<!-- ===================== HUD ===================== -->
+<div id="hud" class="hud" hidden>
+
+  <!-- ===== 顶部速度横栏（仿真实骑行模拟器的"抬头显示"） =====
+       大号速度居中，两侧是功率/踏频/坡度/心率，底部一条速度进度条，
+       整体贴顶部半透明，不挡住视线中心。 -->
+  <div class="panel p-speedbar">
+    <div class="sb-side sb-left">
+      <div class="sb-cell"><label>功率</label><b id="hPower">0</b><u>W</u></div>
+      <div class="sb-cell"><label>踏频</label><b id="hCad">0</b><u>rpm</u></div>
+    </div>
+    <div class="sb-main">
+      <div class="sb-spd"><b id="hSpeed">0.0</b><span>km/h</span></div>
+      <div class="sb-gauge"><i id="hSpeedBar"></i></div>
+      <div class="sb-sub">
+        <span id="hGradeWrap">坡度 <b id="hGrade">0.0</b>%</span>
+        <span class="sb-dot">·</span>
+        <span id="hElevWrap">海拔 <b id="hElev">0</b>m</span>
+        <span class="sb-dot">·</span>
+        <span id="hClimbWrap"><b id="hClimb">—</b></span>
+      </div>
+    </div>
+    <div class="sb-side sb-right">
+      <div class="sb-cell"><label>心率</label><b id="hHr">0</b><u>bpm</u></div>
+      <div class="sb-cell"><label>里程</label><b id="hDist">0.00</b><u>km</u></div>
+    </div>
+  </div>
+
+  <!-- 左侧：次级数据（用时 / 体力 / 节奏） -->
+  <div class="panel p-stats">
+    <div class="rows">
+      <div class="row"><span>用时</span><b id="hTime">0:00</b></div>
+      <div class="row"><span>体力</span><b id="hStam">100</b>%</div>
+      <div class="row"><span>节奏</span><b id="hQual">—</b></div>
+    </div>
+    <div class="stambar"><i id="hStamBar"></i></div>
+  </div>
+
+  <!-- 右上：排行榜 -->
+  <div class="panel p-board">
+    <div class="bh"><span>名次</span><b id="hRank">—</b><span id="hTotal"></span></div>
+    <div class="blist" id="hBoardList"></div>
+    <div class="gaps">
+      <div class="gap ahead"><label>前车</label><b id="hAhead">—</b><i id="hAheadN"></i></div>
+      <div class="gap behind"><label>后车</label><b id="hBehind">—</b><i id="hBehindN"></i></div>
+      <div class="gap lead"><label>距领先</label><b id="hLeader">—</b></div>
+    </div>
+    <div class="phases">
+      <div class="chip" id="hLap">第 1 / 1 圈</div>
+      <div class="chip" id="hDraft" hidden>跟风 <b>−0%</b></div>
+      <div class="chip" id="hOffroad" hidden>出界！</div>
+    </div>
+  </div>
+
+  <!-- 底部中间：单盘踩踏节奏环 + 换挡 UI
+       ★ 只保留一个盘：绿区在正上方＝前半边。指针扫到绿区就按 A（左腿）、
+         扫到对面的绿区就按 D（右腿）——两腿共用同一个相位环，天然自洽。 -->
+  <div class="p-drive">
+    <!-- 圆环旁的迷你功率牌：半透明，只显示功率与瞬时发力的一个小柱 -->
+    <div class="p-pow" id="pPow">
+      <div class="pp-v"><b id="ppVal">0</b><u>W</u></div>
+      <div class="pp-bar"><i id="ppBar"></i></div>
+      <div class="pp-l" id="ppLabel">功率</div>
+    </div>
+    <div class="foot" id="footL">
+      <canvas width="176" height="176" class="fring"></canvas>
+      <div class="fmeta">
+        <b id="fPush">按 A / D</b>
+      </div>
+    </div>
+
+    <div class="drivetrain">
+      <div class="cd-label">
+        <span>单盘 50T</span>
+        <span class="cd-cad">踏频 <b id="hCad2">0</b></span>
+      </div>
+      <div class="cd-body">
+        <svg id="ring" viewBox="0 0 100 100" class="ring"></svg>
+        <!-- viewBox 必须与 ui.js 里的 W/H 一致（300×78），否则最大的几个齿会被裁掉 -->
+        <svg id="cassette" viewBox="0 0 300 78" class="cassette"></svg>
+      </div>
+      <div class="cd-foot">
+        <div class="gi">挡位 <b id="hGearName">19T</b> <i id="hGearIdx">7/11</i></div>
+        <div class="hint" id="hGearHint"></div>
+        <div class="keys"><kbd>Q</kbd> 轻 · <kbd>E</kbd> 重</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模型旁脚部提示 -->
+  <div id="overlayFeet" class="overlay-feet" hidden>
+    <i class="of-l"></i><i class="of-r"></i>
+    <!-- 跟着车手浮动的功率数字（纯白数字，无底框） -->
+    <div class="of-pow" id="ofPow"><b id="ofPowVal">0</b><u>W</u></div>
+  </div>
+
+  <!-- 教练提示 -->
+  <div id="hCoach" class="coach" hidden></div>
+
+  <!-- 左下：操作说明 -->
+  <div class="panel p-help" id="helpPanel">
+    <div class="hh">操作</div>
+    <ul>
+      <li><kbd>A</kbd>/<kbd>D</kbd> 左脚/右脚 节奏发力</li>
+      <li><kbd>←</kbd><kbd>→</kbd> 拐弯</li>
+      <li><kbd>↑</kbd> 慢骑（低功率巡航）</li>
+      <li><kbd>↓</kbd> 刹车</li>
+      <li><kbd>Q</kbd>/<kbd>E</kbd> 换挡（轻/重）</li>
+      <li><kbd>C</kbd> 切换视角 · <kbd>H</kbd> 隐藏帮助</li>
+      <li><kbd>Enter</kbd> 发起/退出比赛 · <kbd>R</kbd> 重开</li>
+    </ul>
+    <div class="hh-tip">进来就是 <b style="color:#30d158">自由训练</b>，随时能骑。想比一场就按 <kbd>Enter</kbd> 发起比赛。</div>
+    <div class="hh-tip"><b>看盘发力</b>：标线扫到哪一格，就按住那一格的键——
+      <b style="color:#30d158">绿区</b>给最大效率；<b style="color:#ffd60a">黄区</b>就提前开始按、
+      进绿区继续按、出绿区再松，这才是完整的一次发力；<b style="color:#ff9f0a">橙区</b>给的力更少；
+      扫到 <b style="color:#ff3b30">红区</b>还在按就是<b>反向拖拽</b>，赶紧松手。
+      盘两侧标着 A / D，指针转到哪边就按哪个。</div>
+    <div class="hh-tip"><b>踏频与挡位</b>：功率峰值出现在 <b>90~100rpm</b>（这是实测的最佳踏频）。
+      起步用大盘带大飞（32T）轻松踩起来，速度上来后逐步升挡；
+      踏频低于 80 就按 <kbd>Q</kbd> 换轻，高于 105 就按 <kbd>E</kbd> 换重。</div>
+  </div>
+
+  <!-- 右侧：节奏轨道（仿音游谱面）
+       两轨分别对应 A（左脚）/ D（右脚）；音符按"最佳发力窗口"的位置落下，
+       滚落速度 = 当前踏频，所以谱面本身就代表最佳节奏。 -->
+  <div class="panel p-rhythm" id="pRhythm">
+    <div class="rh-head" id="rhDrag" title="拖动可移动；双击锁定/解锁位置">
+      <span class="rh-grip">⠿</span>
+      <span>节奏谱</span>
+      <span class="rh-cad"><b id="rhCad">0</b>rpm</span>
+      <span class="rh-lock" id="rhLock" title="已锁定位置">🔒</span>
+    </div>
+    <canvas id="rhythm" width="148" height="310" class="rh-canvas"></canvas>
+    <div class="rh-foot"><span class="rh-k rh-kA">A 左</span><span class="rh-k rh-kD">D 右</span></div>
+  </div>
+
+  <!-- 中央倒计时 / 状态 -->
+  <div id="centerMsg" class="center-msg" hidden><b id="cmBig"></b><span id="cmSub"></span></div>
+
+  <!-- 速度/弯道预警 -->
+  <div id="cornerWarn" class="corner-warn" hidden><b id="cwDist">120</b>m 入弯<span id="cwSpd"></span></div>
+
+  <!-- 小地图 -->
+  <canvas id="minimap" width="240" height="240" class="minimap"></canvas>
+
+  <!-- 结果 -->
+  <div id="results" class="results" hidden>
+    <div class="rs-card">
+      <h2 id="rsTitle">比赛结束</h2>
+      <div class="rs-you" id="rsYou"></div>
+      <table id="rsTable"></table>
+      <div class="rs-foot">按 <kbd>R</kbd> 再来一轮</div>
+    </div>
+  </div>
+
+  <!-- 聊天/快捷语 -->
+  <div id="chatLog" class="chat-log"></div>
+  <div id="chatBar" class="chat-bar" hidden>
+    <button data-t="加油！">加油！</button>
+    <button data-t="跟上我">跟上我</button>
+    <button data-t="我先走了">我先走了</button>
+    <button data-t="坡顶见">坡顶见</button>
+    <button data-t="腿要断了">腿要断了</button>
+    <button data-t="GG">GG</button>
+  </div>
+
+  <!-- 网络状态 -->
+  <div class="netstat" id="netStat"><i></i><span id="netTxt">连接中…</span></div>
+  <div class="fps" id="fpsBox">-- FPS</div>
+</div>
+
+<!-- ===================== 共享模块（两端同一份代码，零漂移） ===================== -->
+<script src="./shared/constants.js"></script>
+<script src="./shared/track.js"></script>
+<script src="./shared/physics.js"></script>
+<script src="./socket.io/socket.io.js"></script>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

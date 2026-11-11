@@ -30,7 +30,7 @@ if (!C || !Track || !Physics) {
            '/shared/*.js。');
   throw new Error('shared modules missing');
 }
-if (!io) {
+if (!io && !new URLSearchParams(location.search).has('local')) {
   ui.fatal('Socket.IO 客户端未加载（/socket.io/socket.io.js）。\n请检查网络或广告拦截插件，然后刷新页面。');
   throw new Error('socket.io client missing');
 }
@@ -377,8 +377,65 @@ function updateCamera(dt) {
 let socket = null;
 let clock = new THREE.Clock();
 
+/* ============================================================================
+ * 单机模式（?local=1）
+ * ---
+ * 客户端本来就每帧跑 Physics.step 做预测，物理不依赖服务端。
+ * 这里只需拦掉 Socket.IO：用假 socket 收集回调，再由本地按同样格式喂消息，
+ * 于是渲染 / HUD / 输入代码一行都不用改。
+ * ========================================================================== */
+const LOCAL_MODE = new URLSearchParams(location.search).has('local');
+
+function makeLocalSocket() {
+  const h = new Map();
+  const api = {
+    id: 'local',
+    connected: true,
+    on(ev, cb) { if (!h.has(ev)) h.set(ev, []); h.get(ev).push(cb); return api; },
+    emit() { /* 单机：比赛控制交由本地状态 */ },
+    io: { on() {} },
+    _fire(ev, d) { const a = h.get(ev); if (a) for (const cb of a) cb(d); },
+  };
+  return api;
+}
+
+/** 由本地预测状态生成与服务器同构的 state 消息（字段对齐 packSelf） */
+function buildLocalState() {
+  if (!pred) return null;
+  const st = pred;
+  const l = Physics.footUI(st, 0), r = Physics.footUI(st, 1);
+  return {
+    t: Date.now(),
+    you: {
+      i: 'local', n: '玩家', c: '#7ee787',
+      s: +st.s.toFixed(2), l: +st.lateral.toFixed(2), v: +st.speed.toFixed(2),
+      di: +st.dist.toFixed(2), cr: +st.crank.toFixed(1),
+      lf: +st.leftForce.toFixed(3), rf: +st.rightForce.toFixed(3),
+      pw: +st.power.toFixed(0), cd: +st.cadence.toFixed(1),
+      g: st.gear, gc: +st.gearCd.toFixed(2), sf: +st.shiftFlash.toFixed(2),
+      cb: +st.combo.toFixed(3), st: +st.stamina.toFixed(1), ln: +st.lean.toFixed(3),
+      lg: +l.gain.toFixed(3), rg: +r.gain.toFixed(3), lb: l.band, rb: r.band,
+      dg: +st.driveGain.toFixed(3), rv: st.reverse ? 1 : 0,
+      la: l.active ? 1 : 0, ra: r.active ? 1 : 0,
+      lgood: l.good ? 1 : 0, rgood: r.good ? 1 : 0,
+      lbad: l.bad ? 1 : 0, rbad: r.bad ? 1 : 0,
+      lap: 0, dft: +st.draft.toFixed(2), cda: +st.cdaFactor.toFixed(3),
+      fin: 0, dnf: 0,
+      rt: st.raceTime == null ? null : +st.raceTime.toFixed(2),
+      or: st.onRoad ? 1 : 0, br: st.braking ? 1 : 0,
+      gh: st.goodHits, bh: st.badHits, pc: st.pressCycles,
+      grade: +Track.gradeAt(st.s).toFixed(2),
+      elev: +Track.elevationAt(st.s).toFixed(1),
+    },
+    near: [], far: 0, rank: 1, total: 1,
+    laps: C.RACE.DEFAULT_LAPS,
+    phase: 'free',
+    countdown: 0,
+  };
+}
+
 function connect() {
-  socket = io({
+  socket = LOCAL_MODE ? makeLocalSocket() : io({
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionDelay: 700,
@@ -654,6 +711,13 @@ function frame() {
     Physics.step(pred, localInput, ctx, dt);
     if (pred.raceTime != null) pred.raceTime += dt;
 
+    /* 单机：把预测状态打包成 state 回灌给同一批回调，
+       等效于服务端下发，HUD / 插值 / 相机代码无需改动 */
+    if (LOCAL_MODE) {
+      const d = buildLocalState();
+      if (d) socket._fire('state', d);
+    }
+
     /* ★ HUD 速度取【权威速度 a.v】（服务端权威 state 下发）与本地预测速度的融合：
      *   - 权威 a.v 是服务端物理算出的真实速度（20~30Hz 到达）
      *   - 本地 pred.speed 是同源物理的即时预测
@@ -873,6 +937,21 @@ async function boot() {
 
   ui.progress(0.96, '连接服务器…');
   connect();
+
+  /* 单机：自建初始状态并触发一次 init/state，让 me / pred 就位 */
+  if (LOCAL_MODE) {
+    pred = Physics.newRiderState(0, 0, C.BIKE.GEAR_DEFAULT);
+    pred.crank = C.PEDAL.START_CRANK;
+    socket._fire('connect');
+    socket._fire('init', {
+      id: 'local',
+      laps: C.RACE.DEFAULT_LAPS,
+      phase: 'free',
+      players: [{ id: 'local', name: '玩家', color: '#7ee787' }],
+    });
+    const first = buildLocalState();
+    if (first) socket._fire('state', first);
+  }
 
   /* 首帧 */
   requestAnimationFrame(() => {
