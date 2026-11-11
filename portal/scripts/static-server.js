@@ -1,5 +1,5 @@
 /**
- * 极简静态服务 —— 给没有联机服务端的单机游戏用（如 FMCAR）
+ * 极简静态服务 —— 给没有联机服务端的单机游戏用（如「沉浸驾驶」）
  * 用法：node static-server.js <目录> <端口>
  */
 const http = require('http');

@@ -94,18 +94,18 @@ module.exports = [
     include: ['package.json', 'server.js', 'index.html', 'css', 'js', 'shared']
   },
   {
-    slug: 'fmcar',
-    name: '山路 · 第一人称座舱',
-    en: 'FM Car Cockpit',
+    slug: 'immersive-drive',
+    name: '沉浸驾驶',
+    en: 'Immersive Drive',
     tag: '驾驶 · 单机',
-    desc: '第一人称座舱视角的山路驾驶体验，仪表、方向盘与后视镜实时联动。单机练习场，适合上线前先熟悉手感。',
+    desc: '第一人称座舱视角的山路驾驶体验，仪表、方向盘与后视镜实时联动，电台可选 Eurobeat 歌单。单机练习场，适合上线前先熟悉手感。',
     players: '单机',
     keys: 'W/S 油门刹车 · A/D 转向 · 鼠标 观察',
     color: '#f472b6',
     color2: '#831843',
     icon: '🚗',
     run: 'static',
-    src: 'FMCAR/public',
+    src: '沉浸驾驶/public',
     include: ['index.html', 'three.module.js'],
     entry: 'index.html'
   }

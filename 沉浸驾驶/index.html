@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
-<title>山路 · 第一人称座舱驾驶</title>
+<title>沉浸驾驶</title>
 <style>
   :root{
     --panel: rgba(14,17,21,.62);
@@ -176,7 +176,8 @@
 
   <div id="kbd">
     <b>A</b> 离合 · <b>S</b> 刹车 · <b>D</b> 油门 · <b>E</b> 点火 · <b>空格</b> 手刹 · <b>J</b> 雨刮 ·
-    <b>C</b> 视角回正 · <b>R</b> 脱困 · <b>L</b> 鼠标锁定 · <b>H</b> 帮助
+    <b>C</b> 视角回正 · <b>R</b> 脱困 · <b>L</b> 鼠标锁定 · <b>H</b> 帮助 ·
+    <b>,</b>/<b>.</b> 切歌 · <b>[</b>/<b>]</b> 换台 · <b>/</b> 播放
   </div>
   <div id="hint"></div>
   <div id="fps"></div>
@@ -185,7 +186,7 @@
 
 <div id="modal">
   <div class="box">
-    <h1>山路 · 第一人称座舱驾驶</h1>
+    <h1>沉浸驾驶</h1>
     <div class="sub">方向盘、挡把、中控屏、车门车窗——全部用准星直接抓 3D 模型操作，没有 UI 按钮代替。</div>
 
     <h2>操作方式</h2>
@@ -194,7 +195,8 @@
       <div>转向</div><div>准星对准<b>方向盘</b> → <b>按住左键</b> → 以方向盘中心为圆心<b>画圆</b>，方向盘跟着转，车就转弯。松手自动回正</div>
       <div>换挡</div><div>准星对准<b>挡把</b> → <b>按住左键</b>（挡把亮起抖动）→ <b>踩离合 A</b> → <b>拖动鼠标</b>走 H 挡位槽 → 到位后松开 A 结合离合</div>
       <div>踏板</div><div><b>A</b> 离合（屏幕左下三个踏板条实时显示）· <b>S</b> 刹车 · <b>D</b> 油门</div>
-      <div>中控屏</div><div>准星点屏幕上的按钮：车灯 / 双闪 / 音乐 / 导航</div>
+      <div>中控屏</div><div>准星点屏幕上的按钮：车灯 / 双闪 / 音乐 / 导航。电台里有 <b>山路 Eurobeat</b> 固定歌单（Running in the 90s / Deja Vu / Dogfight …）</div>
+      <div>联机</div><div>同一个网址打开就在同一个房间（右上「联机」显示人数）——想换房就在地址后面加 <b>#房间名</b>。别的玩家会显示成半透明幽灵车</div>
       <div>车门车窗</div><div>点左门<b>内把手</b>开门，点<b>车窗开关</b>（或直接点玻璃）升降窗</div>
       <div>其他键</div><div><b>E</b> 点火（需踩离合）· <b>空格</b> 手刹 · <b>C</b> 视角回正 · <b>R</b> 回到路面 · <b>L</b> 鼠标锁定 · <b>H</b> 帮助</div>
       <div>视角</div><div>按住<b>鼠标右键拖动</b>自由转头看风景；抓方向盘 / 挡把时视角会自动看向该处</div>
@@ -213,7 +215,7 @@
 
 <script type="module">
 /* ==========================================================================
-   山路 · 第一人称座舱驾驶
+   沉浸驾驶
    单文件（本地 three.module.js，缺失时自动回 CDN）
    ========================================================================== */
 
@@ -4012,9 +4014,15 @@ addEventListener('keydown', e => {
       toast(['雨刮：关闭', '雨刮：慢速', '雨刮：快速'][S.wiper]);
       AU.blip(S.wiper ? 320 : 200, 0.06, 'square', 0.06);
     }
+    // 媒体快捷键：开车时不用去瞄准屏幕
+    if (k === ',') { RADIO.prev(); }
+    if (k === '.') { RADIO.next(); }
+    if (k === '/') { RADIO.toggle(); }
+    if (k === '[') { RADIO.select(RADIO.idx - 1); }
+    if (k === ']') { RADIO.select(RADIO.idx + 1); }
   }
   keys[k] = true;
-  if (['a', 's', 'd', ' ', 'e', 'r', 'l', 'c', 'h', 'j'].includes(k)) e.preventDefault();
+  if (['a', 's', 'd', ' ', 'e', 'r', 'l', 'c', 'h', 'j', ',', '.', '/', '[', ']'].includes(k)) e.preventDefault();
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; releaseGrab(); });
@@ -4449,7 +4457,7 @@ addEventListener('pointerdown', () => {
    不需要任何服务器资源。 */
 const AUDIUS = {
   API: 'https://api.audius.co',
-  APP: 'FMCAR',
+  APP: 'ImmersiveDrive',
   GENRES: ['Electronic', 'Lo-Fi', 'Hip-Hop/Rap', 'Ambient', 'House', 'Chill'],
   tracks: [], tk: 0, gi: 0, loading: false, err: '',
   /* 当前曲目来源：'__trending__' = 官方热榜；其余为 Audius 用户歌单 id。
@@ -4473,27 +4481,72 @@ const AUDIUS = {
     'Dancing', 'Station to Station', 'Love Is in Danger',
   ],
   idTracks: [], idLoading: false, idDone: false,
+  /* 队列版本号：每次向曲库要「一批新曲目」就 +1。
+     快速连续切台时，先发出去的请求可能后回来 —— 回来时若版本号已被顶掉，
+     结果直接丢弃，否则会把新台的曲目表盖成旧台的（表现为"切到别台了"）。 */
+  ver: 0,
+  ID_CACHE: 'fmcar.idTracks.v1',
   loadID() {
     if (this.idLoading) return Promise.resolve(this.idTracks);
     if (this.idDone && this.idTracks.length) return Promise.resolve(this.idTracks);
+    /* 18 条搜索串行跑要 10 秒上下 —— 第一次进站慢一次就够了，
+       之后从 localStorage 直接读（3 天内有效），切到这台是秒开的。 */
+    try {
+      const raw = localStorage.getItem(this.ID_CACHE);
+      if (raw) {
+        const c = JSON.parse(raw);
+        if (c && Array.isArray(c.list) && c.list.length >= 8 && Date.now() - (c.t || 0) < 3 * 864e5) {
+          this.idTracks = c.list; this.idDone = true;
+          return Promise.resolve(this.idTracks);
+        }
+      }
+    } catch (e) { /* 隐私模式 / 配额满：忽略，走网络 */ }
     this.idLoading = true;
     const seen = new Set(), out = [];
+    const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
     const one = q => this._get(`${this.API}/v1/tracks/search?app_name=${this.APP}&query=${encodeURIComponent(q)}&limit=10`, 8000)
       .then(j => {
         const list = this.norm(j.data, 'Eurobeat');
-        // 优先标题里真的含关键词的那条（搜索结果里常混进不相干的曲子）
-        const key = q.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const hit = list.find(t => !seen.has(t.id) && t.title.toLowerCase().replace(/[^a-z0-9]/g, '').includes(key))
-                 || list.find(t => !seen.has(t.id));
+        if (!list.length) return;
+        const key = norm(q);
+        // 取歌名里最长的一个词（≥5 字母）作为"特征词"，避免把 "Love Is in Danger"
+        // 匹配到一首叫 "Chill Love set" 的歌上
+        const words = q.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 5);
+        const word = words.sort((a, b) => b.length - a.length)[0] || '';
+        const hit = list.find(t => !seen.has(t.id) &&
+          (norm(t.title).includes(key) || (word && norm(t.title).includes(word))));
         if (hit) { seen.add(hit.id); out.push(hit); }
       }).catch(() => {});
-    // 串行搜（Audius 搜索接口对并发不友好），每条几百毫秒，整张表约 6~10 秒
+    // 串行搜（Audius 搜索接口对并发不友好），每条几百毫秒，整张表约 8~14 秒
     return this.ID_QUERIES.reduce((p, q) => p.then(() => one(q)), Promise.resolve())
+      .then(() => this.fillEurobeat(seen, out))
       .then(() => {
         this.idTracks = out; this.idLoading = false; this.idDone = true;
+        try { localStorage.setItem(this.ID_CACHE, JSON.stringify({ t: Date.now(), list: out })); } catch (e) {}
         RADIO.rebuild(); drawScreen();
         return out;
       });
+  },
+  /* 补量：再找一个「Eurobeat 合集歌单」把曲目表填厚（同名曲去重） */
+  fillEurobeat(seen, out) {
+    if (out.length >= 18) return Promise.resolve();
+    return this._get(`${this.API}/v1/playlists/search?app_name=${this.APP}&query=eurobeat&limit=8`, 9000)
+      .then(j => {
+        const best = (j.data || [])
+          .filter(p => p && p.id && (p.track_count || 0) >= 10)
+          .sort((a, b) => (b.track_count || 0) - (a.track_count || 0))[0];
+        if (!best) return null;
+        return this._get(`${this.API}/v1/playlists/${best.id}/tracks?app_name=${this.APP}`, 11000);
+      })
+      .then(j => {
+        if (!j) return;
+        for (const t of this.norm(j.data, 'Eurobeat')) {
+          if (out.length >= 26) break;
+          if (seen.has(t.id)) continue;
+          seen.add(t.id); out.push(t);
+        }
+      })
+      .catch(() => {});
   },
   cur() { return this.tracks[this.tk] || null; },
   streamUrl(t) { return `${this.API}/v1/tracks/${t.id}/stream?app_name=${this.APP}`; },
@@ -4516,11 +4569,12 @@ const AUDIUS = {
       }));
   },
   load(genre) {
-    if (this.loading) return Promise.resolve(false);
     const g = genre || this.GENRES[this.gi % this.GENRES.length];
+    const v = ++this.ver;
     this.loading = true; this.err = '';
     return this._get(`${this.API}/v1/tracks/trending?app_name=${this.APP}&limit=40&genre=${encodeURIComponent(g)}`)
       .then(j => {
+        if (v !== this.ver) return 'stale';            // 已被更晚的切台请求顶掉
         const list = this.norm(j.data, g);
         if (!list.length) throw new Error('曲库没有返回曲目');
         this.tracks = list;
@@ -4530,6 +4584,7 @@ const AUDIUS = {
         return true;
       })
       .catch(e => {
+        if (v !== this.ver) return 'stale';
         this.loading = false;
         this.err = /abort/i.test((e && e.name) + '') || /abort/i.test((e && e.message) + '')
           ? '曲库请求超时' : ('曲库不可达：' + (e && e.message || '未知错误'));
@@ -4565,10 +4620,11 @@ const AUDIUS = {
   },
   /* 切到某个歌单：整表替换当前曲目队列 */
   loadPlaylist(id) {
-    if (this.loading) return Promise.resolve(false);
+    const v = ++this.ver;
     this.loading = true; this.err = '';
     return this._get(`${this.API}/v1/playlists/${id}/tracks?app_name=${this.APP}`, 11000)
       .then(j => {
+        if (v !== this.ver) return 'stale';
         const list = this.norm(j.data, 'Playlist');
         if (!list.length) throw new Error('歌单没有可播放曲目');
         const pl = this.playlists.find(p => p.id === id);
@@ -4578,6 +4634,7 @@ const AUDIUS = {
         return true;
       })
       .catch(e => {
+        if (v !== this.ver) return 'stale';
         this.loading = false;
         this.err = '歌单载入失败：' + ((e && e.message) || '网络错误');
         drawScreen();
@@ -4588,6 +4645,7 @@ const AUDIUS = {
 
 const RADIO = {
   stations: [], idx: 0, playing: false, loading: false, vol: 0.55, err: '',
+  rv: 0,                                  // 切台版本号：迟到的异步回调自动作废
   audio: null, apiOK: false, retryAt: 0,
   /* 内置兜底电台：API 不可用时也能播。
      说明：SomaFM 的 ice1/ice2 直连地址在本网络下已全部 302 → somafm.com/alert.mp3
@@ -4616,7 +4674,12 @@ const RADIO = {
        缺 CORS 头的流被浏览器静音（表现为"连上了但没声音"）。 */
     a.preload = 'none';
     a.volume = this.vol;
-    a.addEventListener('playing', () => { this.playing = true; this.loading = false; this.err = ''; drawScreen(); });
+    a.addEventListener('playing', () => {
+      this.playing = true; this.loading = false; this.err = ''; drawScreen();
+      // 像车机一样报一下曲名（切歌 / 自动续播都能看到）
+      const t = this.now();
+      if (t && t.audius && t.name) toast('♪ ' + t.name);
+    });
     a.addEventListener('pause', () => { this.playing = false; drawScreen(); });
     a.addEventListener('waiting', () => { this.loading = true; drawScreen(); });
     /* 一首放完：在 Audius 台里就自动下一首，其余电台直接续流 */
@@ -4646,6 +4709,8 @@ const RADIO = {
        ② radio-browser 的电台目录 */
     AUDIUS.loadPlaylists();
     this.fetchCatalog();
+    // Eurobeat 歌单（18 次串行搜索，别和上面的请求抢带宽，延后一点起）
+    setTimeout(() => AUDIUS.loadID(), 4000);
   },
   fetchCatalog() {
     const url = 'https://de1.api.radio-browser.info/json/stations/bytag/music?limit=40&hidebroken=true&order=clickcount&reverse=true';
@@ -4695,6 +4760,7 @@ const RADIO = {
     this.loading = true; this.err = '';
     if (st.local) {
       // 本地合成台：不碰 <audio>，直接起 Web Audio
+      this.rv++;                       // 作废在途的在线台回调
       if (this.audio) this.audio.pause();
       const ok = SYNTH.start();
       this.playing = !!ok; this.loading = false;
@@ -4712,12 +4778,16 @@ const RADIO = {
   playOnline() {
     const st = this.stations[this.idx] || this.ONLINE;
     const pid = st.pid || '__trending__';
-    const go = () => this.loadTrack();
+    const rv = ++this.rv;                       // 本次切台的选择版本
+    const stale = () => rv !== this.rv;         // 又被切到别的台了 → 这次的结果作废
+    const go = () => { if (!stale()) this.loadTrack(); };
     if (pid === '__id__') {
       if (AUDIUS.pid === '__id__' && AUDIUS.tracks.length) { go(); return; }
       this.loading = true; this.err = ''; drawScreen();
       AUDIUS.loadID().then(list => {
+        if (stale()) return;
         if (list && list.length) {
+          AUDIUS.ver++;                       // 顶掉还在飞的「热榜/歌单」请求，别让它盖掉这张表
           AUDIUS.tracks = list.slice(); AUDIUS.tk = 0;
           AUDIUS.pid = '__id__'; AUDIUS.plName = AUDIUS.ID_NAME;
           go();
@@ -4731,6 +4801,7 @@ const RADIO = {
       if (!AUDIUS.tracks.length || AUDIUS.pid !== '__trending__') {
         this.loading = true; this.err = ''; drawScreen();
         AUDIUS.load().then(ok => {
+          if (stale() || ok === 'stale') return;
           if (ok) go();
           else { this.loading = false; this.err = AUDIUS.err || '曲库不可达'; drawScreen(); }
         });
@@ -4741,6 +4812,7 @@ const RADIO = {
     if (AUDIUS.pid !== pid || !AUDIUS.tracks.length) {
       this.loading = true; this.err = ''; drawScreen();
       AUDIUS.loadPlaylist(pid).then(ok => {
+        if (stale() || ok === 'stale') return;
         if (ok) go();
         else { this.loading = false; this.err = AUDIUS.err || '歌单不可达'; drawScreen(); }
       });
@@ -4781,6 +4853,7 @@ const RADIO = {
     this.idx = ((i % n) + n) % n;
     this.loading = true; this.err = '';
     this.playing = true;
+    this.rv++;                       // 换台了：在途的旧台回调全部作废
     const st = this.stations[this.idx];
     if (st.local) {
       if (this.audio) this.audio.pause();
@@ -4847,44 +4920,40 @@ function drawScreen() {
   for (let x = 0; x < W; x += 32) { g.beginPath(); g.moveTo(x, 54); g.lineTo(x, H); g.stroke(); }
   for (let y = 54; y < H; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
 
-  /* ---- 顶栏 ---- */
+  /* ---- 顶栏（页签也放这里：原来贴在屏底 y=358~388，正好被挡把球挡住，根本点不到） ---- */
   g.fillStyle = 'rgba(24,32,42,.96)'; g.fillRect(0, 0, W, 52);
   g.fillStyle = 'rgba(90,120,150,.30)'; g.fillRect(0, 51, W, 1);
   g.textAlign = 'left'; g.textBaseline = 'middle';
-  g.fillStyle = '#f2f6fa'; g.font = 'bold 19px "PingFang SC","Microsoft YaHei",sans-serif';
-  g.fillText('DRIVE OS', 18, 27);
-  g.fillStyle = '#5f7386'; g.font = '12px "PingFang SC",sans-serif';
-  g.fillText(TK().name, 110, 28);
-  // 右侧状态：时钟 + 温度 + 音乐指示
-  const d0 = new Date();
-  g.textAlign = 'right';
-  g.fillStyle = '#e6edf4'; g.font = 'bold 21px "Segoe UI",sans-serif';
-  g.fillText(`${String(d0.getHours()).padStart(2, '0')}:${String(d0.getMinutes()).padStart(2, '0')}`, W - 18, 27);
-  g.textAlign = 'left';
-  if (RADIO.playing) {
-    g.fillStyle = '#4ade80';
-    g.beginPath(); g.arc(W - 96, 26, 4.5, 0, 6.2832); g.fill();
-    g.fillStyle = '#4ade80'; g.font = 'bold 12px sans-serif';
-    g.fillText('ON AIR', W - 88, 27);
-  } else {
-    g.fillStyle = '#4a5560'; g.font = 'bold 12px sans-serif';
-    g.fillText('RADIO OFF', W - 106, 27);
-  }
-  // 左侧页签
+  g.fillStyle = '#f2f6fa'; g.font = 'bold 17px "PingFang SC","Microsoft YaHei",sans-serif';
+  g.fillText('DRIVE OS', 16, 26);
+
   const TABS = [['home', '主页'], ['media', '媒体'], ['car', '车辆'], ['track', '赛道']];
-  const tw = 78;
   for (let i = 0; i < TABS.length; i++) {
-    const tx = 18 + i * (tw + 4), ty = H - 42;
+    const tw = 56, th = 30, tx = 100 + i * (tw + 4), ty = 11;
     const on = scrPage === TABS[i][0];
-    g.fillStyle = on ? 'rgba(60,110,160,.35)' : 'rgba(28,36,46,.85)';
-    g.fillRect(tx, ty, tw, 30);
-    g.strokeStyle = on ? '#5c9fd6' : 'rgba(90,110,130,.35)'; g.lineWidth = on ? 2 : 1;
-    g.strokeRect(tx, ty, tw, 30);
-    g.fillStyle = on ? '#cfe6fb' : '#8b9aa9';
-    g.font = 'bold 15px "PingFang SC",sans-serif'; g.textAlign = 'center';
-    g.fillText(TABS[i][1], tx + tw / 2, ty + 16);
-    scrBtn('tab:' + TABS[i][0], tx, ty, tw, 30);
+    rr(g, tx, ty, tw, th, 8);
+    g.fillStyle = on ? 'rgba(58,108,158,.80)' : 'rgba(30,38,48,.90)'; g.fill();
+    g.strokeStyle = on ? '#7db8e6' : 'rgba(90,110,130,.38)'; g.lineWidth = on ? 2 : 1; g.stroke();
+    g.fillStyle = on ? '#eaf4ff' : '#8b9aa9';
+    g.font = 'bold 14px "PingFang SC",sans-serif'; g.textAlign = 'center';
+    g.fillText(TABS[i][1], tx + tw / 2, ty + th / 2 + 1);
+    scrBtn('tab:' + TABS[i][0], tx - 2, ty - 6, tw + 4, th + 12);   // 热区四面各放宽一点，屏小也好点
   }
+  // 顶栏中段：当前曲目（放不下就截断）
+  g.textAlign = 'left'; g.font = '11px "PingFang SC",sans-serif';
+  const nowNm = (RADIO.playing || RADIO.loading) ? String(RADIO.now().name || '') : '';
+  if (nowNm) { g.fillStyle = '#5f7386'; g.fillText(clipText(g, nowNm, 160), 348, 26); }
+  // 右段：播放指示 + 时钟
+  g.font = 'bold 11px sans-serif';
+  if (RADIO.playing) {
+    g.fillStyle = '#4ade80'; g.beginPath(); g.arc(W - 126, 26, 4.5, 0, 6.2832); g.fill();
+    g.fillStyle = '#4ade80'; g.fillText('ON AIR', W - 116, 27);
+  } else {
+    g.fillStyle = '#4a5560'; g.fillText('RADIO OFF', W - 138, 27);
+  }
+  const d0 = new Date();
+  g.textAlign = 'right'; g.fillStyle = '#e6edf4'; g.font = 'bold 18px "Segoe UI",sans-serif';
+  g.fillText(`${String(d0.getHours()).padStart(2, '0')}:${String(d0.getMinutes()).padStart(2, '0')}`, W - 16, 27);
   g.textAlign = 'left';
 
   /* ---- 分页内容 ---- */
@@ -4905,6 +4974,14 @@ function rr(g, x, y, w, h, r) {
   g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r);
   g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r);
   g.arcTo(x, y, x + w, y, r); g.closePath();
+}
+
+/* 按当前 font 截断文字，超出加省略号（不用依赖 canvas 的 maxWidth，老浏览器也行） */
+function clipText(g, txt, maxW) {
+  let s2 = String(txt == null ? '' : txt);
+  if (g.measureText(s2).width <= maxW) return s2;
+  while (s2.length > 1 && g.measureText(s2 + '…').width > maxW) s2 = s2.slice(0, -1);
+  return s2 + '…';
 }
 
 /* ---- 主页：大车速 + 挡位 + 关键读数 + 快捷开关 ---- */
@@ -4975,96 +5052,96 @@ function scrDrawHome(g, W, H) {
   g.textAlign = 'left';
 }
 
-/* ---- 媒体页：电台播放 ---- */
+/* ---- 媒体页：电台播放 ----
+   ⚠️ 布局约束：挡把球在驾驶员视线里正好压住屏面「中下部」，
+      所以所有可点控件都必须落在 y ≤ 240 的区域内，底部只放列表（列表下面被挡住也无所谓）。 */
 function scrDrawMedia(g, W, H) {
   const st = RADIO.now();
-  // 左侧：电台信息卡
-  g.fillStyle = 'rgba(20,26,34,.92)'; rr(g, 24, 66, 348, 226, 14); g.fill();
-  g.strokeStyle = 'rgba(90,110,130,.3)'; g.lineWidth = 1; g.stroke();
-  // 唱片图标（旋转感：用当前秒数做角度）
+  const cur = RADIO.stations[RADIO.idx] || null;
+  const onAir = !!(cur && cur.audius);
   const t = performance.now() / 1000;
-  const cx2 = 96, cy2 = 148, rad = 44;
-  g.save();
-  g.fillStyle = 'rgba(16,20,26,.95)'; g.beginPath(); g.arc(cx2, cy2, rad, 0, 6.2832); g.fill();
-  for (let k = 0; k < 3; k++) {
-    g.strokeStyle = 'rgba(120,150,180,.20)'; g.lineWidth = 1;
-    g.beginPath(); g.arc(cx2, cy2, rad - 6 - k * 10, 0, 6.2832); g.stroke();
-  }
-  if (RADIO.playing) {
-    g.translate(cx2, cy2); g.rotate(t * 1.1); g.translate(-cx2, -cy2);
-  }
-  g.fillStyle = RADIO.playing ? '#5cd08a' : '#3a4652';
-  g.beginPath(); g.arc(cx2, cy2, 13, 0, 6.2832); g.fill();
-  g.restore();
-  // 台名 / 类型
-  g.textAlign = 'left'; g.textBaseline = 'middle';
-  g.fillStyle = '#f2f6fa'; g.font = 'bold 20px "PingFang SC",sans-serif';
-  const nmRaw = String(st.name || '—');
-  const nm = nmRaw.length > 16 ? nmRaw.slice(0, 15) + '…' : nmRaw;
-  g.fillText(nm, 158, 112);
-  g.fillStyle = '#7f93a6'; g.font = '14px "PingFang SC",sans-serif';
-  g.fillText(st.genre || '—', 158, 140);
-  g.fillStyle = '#5f7386'; g.font = '13px "PingFang SC",sans-serif';
-  const nowSt = RADIO.stations[RADIO.idx];
-  g.fillText(nowSt && nowSt.audius
-    ? (st.total ? `第 ${st.tk + 1} / ${st.total} 首 · 播完自动下一首` : '正在获取曲目…')
-    : `第 ${RADIO.idx + 1} / ${RADIO.stations.length} 台`, 158, 164);
-  // 状态行
-  let status = '已停止', sc = '#7d8b99';
-  if (RADIO.loading) { status = '连接中…'; sc = '#ffcf5c'; }
-  else if (RADIO.err) { status = RADIO.err; sc = '#ff6b6b'; }
-  else if (RADIO.playing) { status = '正在播放'; sc = '#4ade80'; }
-  g.fillStyle = sc; g.font = 'bold 15px "PingFang SC",sans-serif';
-  g.fillText(status, 158, 190);
-  // 频谱条（装饰：随播放动画，未播放时静止）
-  const N = 26, bw2 = 9;
-  for (let i = 0; i < N; i++) {
-    let hv = 0;
-    if (RADIO.playing) hv = 0.20 + 0.80 * Math.abs(Math.sin(t * 2.1 + i * 0.72) * 0.6 + Math.sin(t * 3.7 + i * 1.31) * 0.4);
-    else hv = 0.10;
-    const hgt = 6 + hv * 46;
-    g.fillStyle = RADIO.playing ? `rgba(90,200,140,${0.45 + hv * 0.5})` : 'rgba(70,84,98,.5)';
-    rr(g, 158 + i * (bw2 + 2.4), 258 - hgt, bw2, hgt, 3); g.fill();
-  }
-  g.fillStyle = '#5f7386'; g.font = '12px "PingFang SC",sans-serif';
-  g.fillText('1 本地合成 · 2 Audius 热榜 · 3~8 别人的热门歌单 · 其后为网络电台', 28, 282);
 
-  // 右侧：控制键
-  const onAir = !!(nowSt && nowSt.audius);
-  const ctrls = [
-    ['rPrev', onAir ? '上一首' : '上一台', 384, 66, 108, 52],
-    ['rNext', onAir ? '下一首' : '下一台', 504, 66, 108, 52],
-    ['rPlay', RADIO.playing ? '暂停' : '播放', 384, 130, 228, 70],
-  ];
-  for (const [id, lb, x, y, w, h] of ctrls) {
-    const hot = id === 'rPlay';
-    g.fillStyle = hot ? (RADIO.playing ? 'rgba(70,40,40,.92)' : 'rgba(28,58,42,.92)') : 'rgba(30,38,48,.92)';
-    rr(g, x, y, w, h, 12); g.fill();
-    g.strokeStyle = hot ? (RADIO.playing ? '#d8695e' : '#4ade80') : 'rgba(90,110,130,.45)';
-    g.lineWidth = 2; g.stroke();
-    g.fillStyle = hot ? (RADIO.playing ? '#ffb0a4' : '#9df0bd') : '#c3ccd6';
-    g.font = 'bold 20px "PingFang SC",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText(lb, x + w / 2, y + h / 2);
-    scrBtn(id, x, y, w, h);
+  /* ---------- 左：正在播放 ---------- */
+  g.fillStyle = 'rgba(20,26,34,.92)'; rr(g, 20, 62, 352, 156, 14); g.fill();
+  g.strokeStyle = 'rgba(90,110,130,.30)'; g.lineWidth = 1; g.stroke();
+  // 唱片
+  const cx2 = 78, cy2 = 130, rad = 32;
+  g.save();
+  g.fillStyle = 'rgba(14,18,24,.96)'; g.beginPath(); g.arc(cx2, cy2, rad, 0, 6.2832); g.fill();
+  for (let k = 0; k < 3; k++) {
+    g.strokeStyle = 'rgba(120,150,180,.18)'; g.lineWidth = 1;
+    g.beginPath(); g.arc(cx2, cy2, rad - 6 - k * 9, 0, 6.2832); g.stroke();
   }
-  // 音量
-  const vx = 384, vy = 214, vw = 228;
-  g.fillStyle = '#7f93a6'; g.font = '13px "PingFang SC",sans-serif';
-  g.textAlign = 'left'; g.textBaseline = 'middle';
-  g.fillText('音量', vx, vy + 14);
-  g.fillStyle = 'rgba(24,30,38,.95)'; rr(g, vx, vy + 26, vw, 16, 8); g.fill();
-  g.fillStyle = '#5c9fd6'; rr(g, vx, vy + 26, Math.max(6, vw * RADIO.vol), 16, 8); g.fill();
-  g.fillStyle = '#cfe6fb'; g.font = 'bold 13px "Segoe UI",sans-serif'; g.textAlign = 'right';
-  g.fillText(Math.round(RADIO.vol * 100) + '%', vx + vw, vy + 14);
-  scrBtn('rVolM', vx, vy + 20, 30, 28);        // 音量 -
-  scrBtn('rVolP', vx + vw - 30, vy + 20, 30, 28); // 音量 +
+  if (RADIO.playing) { g.translate(cx2, cy2); g.rotate(t * 1.1); g.translate(-cx2, -cy2); }
+  g.fillStyle = RADIO.playing ? '#5cd08a' : '#3a4652';
+  g.beginPath(); g.arc(cx2, cy2, 10, 0, 6.2832); g.fill();
+  g.restore();
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = '#5f7386'; g.font = '10px "Segoe UI",sans-serif';
+  g.fillText(RADIO.playing ? 'PLAY' : 'STOP', cx2, cy2 + rad + 14);
   g.textAlign = 'left';
 
-  // 电台列表（横向滚动简化为前后各两台预览）
-  const listY = 306, lw = 142, lh = 46;
+  // 曲名 / 艺人 / 进度 / 状态 / 电台源
+  g.fillStyle = '#f2f6fa'; g.font = 'bold 19px "PingFang SC",sans-serif';
+  g.fillText(clipText(g, st.name, 224), 130, 90);
+  g.fillStyle = '#7f93a6'; g.font = '12.5px "PingFang SC",sans-serif';
+  g.fillText(clipText(g, st.genre, 224), 130, 114);
+  g.fillStyle = '#5f7386'; g.font = '12px "PingFang SC",sans-serif';
+  g.fillText(st.total ? `第 ${st.tk + 1} / ${st.total} 首 · 播完自动下一首`
+                      : `第 ${RADIO.idx + 1} / ${Math.max(1, RADIO.stations.length)} 台`,
+    130, 136);
+  let status = '已停止', sc = '#7d8b99';
+  if (RADIO.loading) { status = '连接中…'; sc = '#ffcf5c'; }
+  else if (RADIO.err) { status = clipText(g, RADIO.err, 200); sc = '#ff6b6b'; }
+  else if (RADIO.playing) { status = '正在播放'; sc = '#4ade80'; }
+  g.fillStyle = sc; g.font = 'bold 14px "PingFang SC",sans-serif';
+  g.fillText(status, 130, 160);
+  g.fillStyle = '#4d5c6b'; g.font = '11px "PingFang SC",sans-serif';
+  g.fillText(clipText(g, '电台 · ' + (cur ? cur.name : '—'), 224), 130, 186);
+
+  /* ---------- 右：控制键 ---------- */
+  const btn = (id, lb, x, y, w, h, hot) => {
+    g.fillStyle = hot === 'on' ? 'rgba(72,40,40,.94)' : (hot === 'off' ? 'rgba(28,58,42,.94)' : 'rgba(30,38,48,.94)');
+    rr(g, x, y, w, h, 11); g.fill();
+    g.strokeStyle = hot === 'on' ? '#d8695e' : (hot === 'off' ? '#4ade80' : 'rgba(90,110,130,.45)');
+    g.lineWidth = 2; g.stroke();
+    g.fillStyle = hot === 'on' ? '#ffb0a4' : (hot === 'off' ? '#9df0bd' : '#c3ccd6');
+    g.font = 'bold 18px "PingFang SC",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(lb, x + w / 2, y + h / 2 + 1);
+    scrBtn(id, x, y, w, h);
+  };
+  btn('rPrev', onAir ? '上一首' : '上一台', 384, 62, 112, 38);
+  btn('rNext', onAir ? '下一首' : '下一台', 504, 62, 112, 38);
+  btn('rPlay', RADIO.playing ? '暂停' : '播放', 384, 104, 232, 48, RADIO.playing ? 'on' : 'off');
+  // 换台：这两颗永远切「台」，不受"在线台里上下键变切歌"的影响
+  btn('chPrev', '◀ 换台', 384, 156, 112, 30);
+  btn('chNext', '换台 ▶', 504, 156, 112, 30);
+
+  // 音量：− / 滑条（点哪跳哪）/ +
+  const vx = 384, vw = 232, vy = 192;
+  g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.fillStyle = '#7f93a6'; g.font = '12px "PingFang SC",sans-serif';
+  g.fillText('音量', vx + 34, vy + 8);
+  g.textAlign = 'right'; g.fillStyle = '#cfe6fb'; g.font = 'bold 12px "Segoe UI",sans-serif';
+  g.fillText(Math.round(RADIO.vol * 100) + '%', vx + vw - 34, vy + 8);
+  const vbt = (id, bx, sym) => {
+    g.fillStyle = 'rgba(30,38,48,.95)'; rr(g, bx, vy - 4, 26, 26, 8); g.fill();
+    g.strokeStyle = 'rgba(90,110,130,.42)'; g.lineWidth = 1; g.stroke();
+    g.fillStyle = '#c3ccd6'; g.font = 'bold 16px "Segoe UI",sans-serif'; g.textAlign = 'center';
+    g.fillText(sym, bx + 13, vy + 10);
+    scrBtn(id, bx, vy - 6, 26, 30);
+  };
+  vbt('rVolM', vx, '−'); vbt('rVolP', vx + vw - 26, '+');
+  g.fillStyle = 'rgba(24,30,38,.95)'; rr(g, vx + 32, vy + 17, vw - 64, 12, 6); g.fill();
+  g.fillStyle = '#5c9fd6'; rr(g, vx + 32, vy + 17, Math.max(5, (vw - 64) * RADIO.vol), 12, 6); g.fill();
+  scrBtn('rVolS', vx + 32, vy + 13, vw - 64, 20);
+  g.textAlign = 'left';
+
+  /* ---------- 下：电台卡（整张可点，点哪台切哪台） ---------- */
+  const listY = 226, lw = 112, lh = 56;
   const nSt = RADIO.stations.length;
   if (!nSt) {                                  // 目录未就绪（首帧 / 拉取中）：画占位而不是崩
-    g.fillStyle = 'rgba(24,30,38,.86)'; rr(g, 30, listY, 580, lh, 10); g.fill();
+    g.fillStyle = 'rgba(24,30,38,.86)'; rr(g, 24, listY, 592, lh, 10); g.fill();
     g.strokeStyle = 'rgba(80,100,120,.3)'; g.lineWidth = 1; g.stroke();
     g.fillStyle = '#7f93a6'; g.font = 'bold 14px "PingFang SC",sans-serif';
     g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -5072,23 +5149,44 @@ function scrDrawMedia(g, W, H) {
     g.textAlign = 'left';
     return;
   }
-  for (let i = -1; i <= 2; i++) {
+  const M = Math.min(nSt, 5), half = Math.floor(M / 2);
+  for (let i = -half; i <= half; i++) {
     const k = ((RADIO.idx + i) % nSt + nSt) % nSt;
     const s2 = RADIO.stations[k];
     if (!s2) continue;
-    const x = 30 + (i + 1) * (lw + 8);
-    const cur = i === 0;
-    g.fillStyle = cur ? 'rgba(50,90,130,.55)' : 'rgba(24,30,38,.86)';
+    const x = 320 + i * (lw + 8) - lw / 2, isCur = i === 0;
+    g.fillStyle = isCur ? 'rgba(50,90,130,.70)' : 'rgba(24,30,38,.90)';
     rr(g, x, listY, lw, lh, 10); g.fill();
-    g.strokeStyle = cur ? '#5c9fd6' : 'rgba(80,100,120,.3)'; g.lineWidth = cur ? 2 : 1; g.stroke();
-    g.fillStyle = cur ? '#dceaf7' : '#8b9aa9'; g.font = 'bold 12px "PingFang SC",sans-serif';
-    const nm = String(s2.name || '未知电台');
-    const nm2 = nm.length > 12 ? nm.slice(0, 11) + '…' : nm;
+    g.strokeStyle = isCur ? '#5c9fd6' : 'rgba(80,100,120,.34)'; g.lineWidth = isCur ? 2 : 1; g.stroke();
+    g.fillStyle = isCur ? '#dceaf7' : '#8b9aa9'; g.font = 'bold 12px "PingFang SC",sans-serif';
     g.textAlign = 'left'; g.textBaseline = 'middle';
-    g.fillText(nm2, x + 10, listY + 20);
-    g.fillStyle = cur ? '#7fb4dc' : '#5f7386'; g.font = '11px "PingFang SC",sans-serif';
-    g.fillText(String(s2.genre || '').slice(0, 12), x + 10, listY + 36);
+    g.fillText(clipText(g, s2.name, lw - 18), x + 9, listY + 20);
+    g.fillStyle = isCur ? '#7fb4dc' : '#5f7386'; g.font = '10.5px "PingFang SC",sans-serif';
+    g.fillText(clipText(g, s2.genre, lw - 18), x + 9, listY + 39);
+    scrBtn('st:' + k, x, listY, lw, lh);
   }
+  // 台号进度点（当前台居中）
+  const dotsY = 298, dN = Math.min(nSt, 15);
+  const first = RADIO.idx - Math.floor(dN / 2);
+  for (let i = 0; i < dN; i++) {
+    const k = ((first + i) % nSt + nSt) % nSt;
+    g.beginPath(); g.arc(320 + (i - (dN - 1) / 2) * 14, dotsY, k === RADIO.idx ? 4 : 2.4, 0, 6.2832);
+    g.fillStyle = k === RADIO.idx ? '#5c9fd6' : 'rgba(120,150,180,.35)'; g.fill();
+  }
+  g.fillStyle = '#43505d'; g.font = '11px "PingFang SC",sans-serif'; g.textAlign = 'center';
+  g.textAlign = 'left';
+  g.fillText(`${RADIO.idx + 1} / ${nSt} 台　·　${st.audius ? '上下键切歌，换台键切台' : '点卡片或换台键切台'}`, 24, 318);
+  // 底部频谱（纯装饰；挡把会挡住正中一段，两侧仍能看到）
+  const N2 = 46, bw2 = 11, gap2 = 2, sx0 = 20, base = 392;
+  for (let i = 0; i < N2; i++) {
+    const hv = RADIO.playing
+      ? 0.18 + 0.82 * Math.abs(Math.sin(t * 1.7 + i * 0.55) * 0.55 + Math.sin(t * 3.1 + i * 1.13) * 0.45)
+      : 0.06;
+    const hgt = 4 + hv * 44;
+    g.fillStyle = RADIO.playing ? `rgba(80,170,220,${0.22 + hv * 0.40})` : 'rgba(70,84,98,.26)';
+    rr(g, sx0 + i * (bw2 + gap2), base - hgt, bw2, hgt, 3); g.fill();
+  }
+  g.textAlign = 'left';
 }
 
 /* ---- 车辆页：行车数据 ---- */
@@ -5187,6 +5285,10 @@ function screenClick(u, v) {
     else if (id === 'rPrev') { RADIO.prev(); }
     else if (id === 'rVolP') { RADIO.setVol(RADIO.vol + 0.1); }
     else if (id === 'rVolM') { RADIO.setVol(RADIO.vol - 0.1); }
+    else if (id === 'rVolS') { RADIO.setVol(clamp((px - b.x) / Math.max(1, b.w), 0, 1)); }   // 点滑条哪就跳到哪
+    else if (id === 'chPrev') { RADIO.select(RADIO.idx - 1); }                                 // 永远切台
+    else if (id === 'chNext') { RADIO.select(RADIO.idx + 1); }
+    else if (id.startsWith('st:')) { RADIO.select(Number(id.slice(3))); }                       // 点卡片切台
     drawScreen();
     return;
   }
@@ -5952,7 +6054,7 @@ window.__DBG = { S, CFG, THREE, camera, scene, car, cabin, body, WORLD, MAT, ren
   glovePivot, armrestPivot, sunglassPivot, climateGroup,
   wiperL, wiperR, WIPER, wipeCurve,
   // 新增：赛道系统 / 电台 / 屏幕
-  TRACKS, TK, switchTrack, buildTrack, buildWorldMeshes, RADIO, AUDIUS,
+  TRACKS, TK, switchTrack, buildTrack, buildWorldMeshes, RADIO, AUDIUS, NET,
   get SCR_HOT() { return SCR_HOT; },
   get scrPage() { return scrPage; }, set scrPage(v) { scrPage = v; },
   screenClick, drawScreen, drawCluster, undH, syncTrackCFG,

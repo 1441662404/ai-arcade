@@ -26,7 +26,7 @@ Node.js + Three.js + WebSocket 权威服务器 · 浏览器直接开打 · 无�
 | 🏁 **山路传说 · 雾见山夜战**<br>Mountain Pass Legend | 漂移 · 夜战 | 2–10 | 零依赖自研 WebSocket 同步，轮胎打滑与惯性漂移在服务器演算 |
 | ⚽ **足球盛宴**<br>Violent Soccer | 足球 · 对抗 | 2–12 | 30Hz 权威主循环驱动球体物理，支持观战与语音 |
 | 🪖 **战火英雄**<br>Strike Force Heroes | 横版射击 · 组队 | 2–12 | 四大兵种、数十种枪械、三张多层地图，60Hz 权威推演 |
-| 🚗 **山路 · 第一人称座舱**<br>FM Car Cockpit | 驾驶 · 单机 | 1 | 第一人称座舱，仪表、方向盘、后视镜实时联动 |
+| 🚗 **沉浸驾驶**<br>Immersive Drive | 驾驶 · 单机 | 1 | 第一人称座舱，仪表、方向盘、后视镜实时联动，内置 Eurobeat 电台 |
 
 ## 快速开始
 
@@ -70,7 +70,7 @@ cd "Cloud Thorn/sky-dogfight" && npm install && npm start
 
 - **权威服务器**：位置、碰撞、命中全部服务端结算，客户端只发输入。避免作弊，也避免两端算错。
 - **状态同步而非 RPC**：服务端以固定 tick 广播世界快照，客户端做插值与预测。
-- **零外部资源依赖**（部分项目）：`云端之刺` 与 `山路 · 座舱` 的模型、天空、海面均为程序化生成，仓库里没有一张贴图。
+- **零外部资源依赖**（部分项目）：`云端之刺` 与 `沉浸驾驶` 的模型、天空、海面均为程序化生成，仓库里没有一张贴图。
 - **无构建步骤**：没有打包器。改完 JS 刷新浏览器就生效，适合快速迭代。
 
 ## 项目结构
@@ -86,7 +86,7 @@ cd "Cloud Thorn/sky-dogfight" && npm install && npm start
 ├── 山路传说/                 # Mountain Pass Legend（漂移夜战）
 ├── 足球盛宴/                 # Violent Soccer（足球对抗）
 ├── 战火英雄/                 # Strike Force Heroes（横版射击）
-├── FMCAR/                   # 第一人称座舱（单机）
+├── 沉浸驾驶/                 # Immersive Drive（单机第一人称驾驶）
 └── docs/screenshots/        # README 配图
 ```
 

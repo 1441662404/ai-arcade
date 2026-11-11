@@ -1,5 +1,5 @@
 /**
- * 5199 游戏厅 —— 单端口统一网关
+ * AI Arcade —— 单端口统一网关
  * ------------------------------------------------------------------
  * 对外只暴露一个端口：
  *   /                     门户（选游戏）
@@ -1508,7 +1508,7 @@ server.on('upgrade', (req, socket, head) => {
 server.listen(PORT, HOST, () => {
   loadBans();
   console.log('');
-  console.log('  5199 游戏厅已启动');
+  console.log('  AI Arcade 已启动');
   console.log(`  本机：  http://localhost:${PORT}`);
   if (banList.size) console.log(`  封禁：  ${[...banList].join(', ')}`);
   console.log(`  游戏：  ${games.length} 款（${KEEP_ALL ? '全部常驻' : `按需启动 · 空闲 ${Math.round(IDLE_STOP_MS / 60000)} 分钟自动休眠`}）`);

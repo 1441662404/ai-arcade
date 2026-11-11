@@ -1,4 +1,4 @@
-/* 5199 游戏厅 · 前端 */
+/* AI Arcade · 前端 */
 (() => {
   const $ = (sel, root = document) => root.querySelector(sel);
 
