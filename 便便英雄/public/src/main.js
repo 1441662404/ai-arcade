@@ -6,6 +6,12 @@ import * as THREE from 'three';
 import { createWorld, createRenderer } from './world.js';
 import { createPoopHero, createViewModel, createGrenadeMesh, createRollBallMesh } from './model.js';
 import { FX, SFX, initAudio, makeSplatBlob, toggleMute } from './fx.js';
+import { createLocalGame } from './local-server.js';
+
+/* 单机模式：URL 带 ?local=1 时用浏览器内的本地服务端，不连 WebSocket */
+const LOCAL_MODE = new URLSearchParams(location.search).has('local');
+let localGame = null;
+let localAcc = 0;
 
 const $ = (s) => document.querySelector(s);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -87,6 +93,24 @@ function clearSplats() { elSplats.innerHTML = ''; }
 
 // ============================ 联网 ============================
 function connect() {
+  /* ---- 单机模式：不建 WebSocket，直接起本地服务端 ---- */
+  if (LOCAL_MODE) {
+    return new Promise((resolve) => {
+      localGame = createLocalGame({ name: '玩家' });
+      ws = { readyState: 1, close() {}, send() {} };
+      myId = localGame.id;
+      mapData = localGame.map;
+      cfg = localGame.cfg;
+      elPName.textContent = localGame.name;
+      botCfg.enabled = true;
+      botCfg.count = Math.max(0, localGame.players.size - 1);
+      botCfg.max = 8;
+      buildScene();
+      syncBotUI();
+      resolve();
+    });
+  }
+
   return new Promise((resolve, reject) => {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
@@ -133,7 +157,14 @@ function connect() {
   });
 }
 
-function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+function send(obj) {
+  /* 单机：输入直接喂给本地服务端，其余消息忽略 */
+  if (LOCAL_MODE) {
+    if (obj && obj.t === 'input' && localGame) localGame.setInput(obj);
+    return;
+  }
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
+}
 
 // ============================ 场景 ============================
 function buildScene() {
@@ -949,6 +980,17 @@ function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (!scene) return;
+
+  /* 单机：本地推进逻辑帧（60Hz），并按 20Hz 出快照交给渲染层，
+     与网络版 snapRate 保持一致，插值手感才不变 */
+  if (LOCAL_MODE && localGame) {
+    localGame.tick();
+    localAcc += dt;
+    if (localAcc >= 1 / 20) {
+      localAcc = 0;
+      applySnapshot(localGame.snapshot());
+    }
+  }
 
   sendInput(dt);
 
