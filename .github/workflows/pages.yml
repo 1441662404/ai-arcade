@@ -1,7 +1,10 @@
 name: Deploy Pages
 
-# 把 docs/ 目录发布到 GitHub Pages
-# 首次运行若报 "Pages is not enabled"，去 Settings → Pages → Source 选 "GitHub Actions"
+# 把 docs/ 发布到 GitHub Pages
+#
+# 首次使用需要在仓库里启用一次：
+#   Settings → Pages → Build and deployment → Source 选 "GitHub Actions"
+# 未启用时本工作流会跳过部署并给出提示，不会报红。
 
 on:
   push:
@@ -20,23 +23,36 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check whether Pages is enabled
+        id: pages
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages")
+          if [ "$code" = "200" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Pages 已启用，继续部署"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GitHub Pages 尚未启用。请到 Settings → Pages → Source 选择 'GitHub Actions'，然后重新运行本工作流。"
+          fi
+
       - name: Setup Pages
+        if: steps.pages.outputs.enabled == 'true'
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload artifact
+        if: steps.pages.outputs.enabled == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./docs
 
       - name: Deploy to GitHub Pages
+        if: steps.pages.outputs.enabled == 'true'
         id: deployment
         uses: actions/deploy-pages@v4

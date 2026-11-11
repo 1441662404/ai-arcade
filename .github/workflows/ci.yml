@@ -32,13 +32,20 @@ jobs:
 
       - name: Check browser bundles
         run: |
-          set -e
+          # 浏览器端多为 ES Module，直接 node --check 会按 CommonJS 解析而误报，
+          # 这里通过 stdin + --input-type=module 按模块语法校验。
+          fail=0
           n=0
           while IFS= read -r f; do
-            node --check "$f" >/dev/null 2>&1 || { echo "FAIL: $f"; exit 1; }
+            if ! node --input-type=module --check < "$f" 2>/tmp/err; then
+              echo "FAIL: $f"
+              cat /tmp/err
+              fail=1
+            fi
             n=$((n+1))
           done < <(find . -path '*/public/js/*.js' -not -path '*/node_modules/*' -not -name '*.min.js')
-          echo "✓ $n browser files passed"
+          echo "✓ $n browser files checked"
+          exit $fail
 
       - name: Validate package.json files
         run: |
