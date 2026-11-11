@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Arcade · 七款 3D 网页游戏</title>
-<meta name="description" content="七款用 AI 辅助开发的 3D 网页游戏。Node.js + Three.js，浏览器直接开打。">
+<meta name="description" content="七款用 AI 辅助开发的 3D 网页游戏。三款可在线试玩，全部支持本地联机。">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -17,54 +17,66 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  .wrap {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 64px 24px 90px;
-  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 60px 24px 80px; }
 
   /* ---------- 头部 ---------- */
-  h1 {
-    font-size: 30px;
-    font-weight: 700;
-    letter-spacing: -.02em;
-    margin-bottom: 8px;
-  }
+  h1 { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 8px; }
 
-  .sub {
-    color: #6b7280;
-    font-size: 14.5px;
-    margin-bottom: 6px;
-  }
+  .sub { color: #6b7280; font-size: 14.5px; margin-bottom: 28px; }
 
-  .note {
-    color: #9ca3af;
-    font-size: 13px;
+  /* ---------- 说明卡 ---------- */
+  .legend {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px 18px;
     margin-bottom: 40px;
+    background: #fafafa;
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.8;
+  }
+  .legend b { color: #111827; }
+  .legend .row-line { display: flex; gap: 8px; align-items: flex-start; }
+  .legend .ico { flex-shrink: 0; width: 16px; }
+
+  /* ---------- 分组标题 ---------- */
+  .group {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 44px 0 6px;
+  }
+  .group:first-of-type { margin-top: 0; }
+  .group h2 { font-size: 17px; font-weight: 700; }
+  .group .count {
+    font-size: 12px;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .group-desc {
+    font-size: 12.5px;
+    color: #9ca3af;
+    margin-bottom: 14px;
   }
 
   /* ---------- 列表 ---------- */
-  .list {
-    border-top: 1px solid #e5e7eb;
-  }
+  .list { border-top: 1px solid #e5e7eb; }
 
   .row {
     display: flex;
     align-items: center;
-    gap: 18px;
-    padding: 18px 4px;
+    gap: 16px;
+    padding: 16px 4px;
     border-bottom: 1px solid #e5e7eb;
-    text-decoration: none;
-    color: inherit;
     transition: background .15s ease;
   }
-
   .row:hover { background: #fafafa; }
 
   .thumb {
-    width: 128px;
-    height: 72px;
-    border-radius: 8px;
+    width: 116px; height: 65px;
+    border-radius: 7px;
     object-fit: cover;
     flex-shrink: 0;
     border: 1px solid #e5e7eb;
@@ -73,78 +85,92 @@
 
   .meta { flex: 1; min-width: 0; }
 
-  .name {
-    font-size: 16px;
+  .name { font-size: 15.5px; font-weight: 600; margin-bottom: 3px; }
+  .name .en { font-weight: 400; color: #9ca3af; font-size: 12.5px; margin-left: 6px; }
+
+  .tags { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .genre { font-size: 12.5px; color: #6b7280; }
+
+  .pill {
+    font-size: 11px;
     font-weight: 600;
-    margin-bottom: 2px;
+    padding: 2px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
   }
+  .pill-online { color: #15803d; background: #dcfce7; }
+  .pill-local  { color: #92400e; background: #fef3c7; }
 
-  .name .en {
-    font-weight: 400;
-    color: #9ca3af;
-    font-size: 13px;
-    margin-left: 6px;
-  }
-
-  .tag {
-    font-size: 12.5px;
-    color: #6b7280;
-  }
-
-  /* ---------- 右侧动作 ---------- */
-  .action {
-    flex-shrink: 0;
-    text-align: right;
-  }
+  /* ---------- 动作区 ---------- */
+  .actions { flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
 
   .btn {
     display: inline-block;
-    padding: 7px 16px;
+    padding: 7px 15px;
     border-radius: 7px;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 600;
     text-decoration: none;
     white-space: nowrap;
     transition: .15s ease;
+    border: 1px solid transparent;
   }
-
-  .btn-play {
-    background: #2563eb;
-    color: #fff;
-  }
+  .btn-play { background: #2563eb; color: #fff; }
   .btn-play:hover { background: #1d4ed8; }
-
-  .btn-code {
-    border: 1px solid #e5e7eb;
-    color: #374151;
-    background: #fff;
-  }
+  .btn-code { border-color: #e5e7eb; color: #374151; background: #fff; }
   .btn-code:hover { border-color: #d1d5db; background: #f9fafb; }
+  .btn-sub { font-size: 11px; padding: 4px 10px; }
 
-  .hint {
-    font-size: 11.5px;
+  .note-line {
+    font-size: 11px;
     color: #9ca3af;
-    margin-top: 5px;
+    margin-top: 2px;
+    text-align: right;
   }
 
-  /* ---------- 页脚 ---------- */
+  /* ---------- 命令块 ---------- */
+  .cmdbox {
+    margin-top: 40px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fafafa;
+  }
+  .cmdbox-head {
+    padding: 12px 16px;
+    font-size: 12.5px;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  pre {
+    padding: 16px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.9;
+    overflow-x: auto;
+    color: #111827;
+  }
+  pre .c { color: #9ca3af; }
+  pre .g { color: #15803d; }
+
   footer {
-    margin-top: 44px;
-    padding-top: 24px;
+    margin-top: 40px;
+    padding-top: 22px;
     border-top: 1px solid #e5e7eb;
-    font-size: 13px;
+    font-size: 12.5px;
     color: #9ca3af;
   }
   footer a { color: #2563eb; text-decoration: none; }
   footer a:hover { text-decoration: underline; }
 
-  @media (max-width: 620px) {
-    .wrap { padding: 40px 18px 60px; }
-    h1 { font-size: 24px; }
-    .thumb { width: 84px; height: 48px; }
+  @media (max-width: 640px) {
+    .wrap { padding: 36px 16px 60px; }
+    h1 { font-size: 23px; }
+    .thumb { width: 76px; height: 43px; }
     .name .en { display: block; margin-left: 0; }
-    .btn { padding: 6px 12px; font-size: 12px; }
-    .hint { display: none; }
+    .actions { gap: 4px; }
+    .btn { padding: 6px 11px; font-size: 11.5px; }
+    .note-line { display: none; }
   }
 </style>
 </head>
@@ -153,99 +179,158 @@
 <div class="wrap">
 
   <h1>AI Arcade</h1>
-  <p class="sub">七款用 AI 辅助开发的 3D 网页游戏 · Node.js + Three.js + 权威服务器</p>
-  <p class="note">只有「沉浸驾驶」是纯前端，可以直接在线玩；其余六款需要 Node 服务端，在本地一行命令启动。</p>
+  <p class="sub">七款用 AI 辅助开发的 3D 网页游戏 · Node.js + Three.js</p>
+
+  <div class="legend">
+    <div class="row-line">
+      <span class="ico">▶</span>
+      <span><b>在线试玩</b>：打开就能玩，但只是<b>单机 / 打 AI 版</b>，没有联机。</span>
+    </div>
+    <div class="row-line">
+      <span class="ico">⌨</span>
+      <span><b>本地运行</b>：完整版，<b>支持多人联机</b>。每款是一个独立 Node 项目，进目录 <code>npm start</code>。</span>
+    </div>
+  </div>
+
+  <!-- ============ 在线试玩 ============ -->
+  <div class="group">
+    <h2>▶ 在线试玩</h2>
+    <span class="count">3 款</span>
+  </div>
+  <p class="group-desc">点开即玩，无需下载。联机功能需要本地运行。</p>
 
   <div class="list">
 
-    <a class="row" href="https://github.com/1441662404/ai-arcade/tree/main/Cloud%20Thorn/sky-dogfight" target="_blank" rel="noopener">
-      <img class="thumb" src="./screenshots/sky-dogfight.png" alt="云端之刺" loading="lazy">
-      <div class="meta">
-        <div class="name">云端之刺<span class="en">Sky Dogfight</span></div>
-        <div class="tag">空战 · 团队对抗 · 2–16 人</div>
-      </div>
-      <div class="action">
-        <span class="btn btn-code">源码</span>
-        <div class="hint">需本地运行</div>
-      </div>
-    </a>
-
-    <a class="row" href="https://github.com/1441662404/ai-arcade/tree/main/Nbike" target="_blank" rel="noopener">
-      <img class="thumb" src="./screenshots/nbike.png" alt="山道飞骑" loading="lazy">
-      <div class="meta">
-        <div class="name">山道飞骑<span class="en">Nbike Alpine</span></div>
-        <div class="tag">自行车竞速 · 2–12 人</div>
-      </div>
-      <div class="action">
-        <span class="btn btn-code">源码</span>
-        <div class="hint">需本地运行</div>
-      </div>
-    </a>
-
-    <a class="row" href="https://github.com/1441662404/ai-arcade/tree/main/%E4%BE%BF%E4%BE%BF%E8%8B%B1%E9%9B%84" target="_blank" rel="noopener">
-      <img class="thumb" src="./screenshots/poop-hero.png" alt="便便英雄" loading="lazy">
-      <div class="meta">
-        <div class="name">便便英雄<span class="en">Poop Hero</span></div>
-        <div class="tag">竞技场乱斗 · 2–12 人</div>
-      </div>
-      <div class="action">
-        <span class="btn btn-code">源码</span>
-        <div class="hint">需本地运行</div>
-      </div>
-    </a>
-
-    <a class="row" href="./games/mountain-pass/">
-      <img class="thumb" src="./screenshots/mountain-pass.png" alt="山路传说" loading="lazy">
-      <div class="meta">
-        <div class="name">山路传说<span class="en">Mountain Pass Legend</span></div>
-        <div class="tag">漂移夜战 · 单人计时</div>
-      </div>
-      <div class="action">
-        <span class="btn btn-play">▶ 试玩</span>
-      </div>
-    </a>
-
-    <a class="row" href="https://github.com/1441662404/ai-arcade/tree/main/%E8%B6%B3%E7%90%83%E7%9B%9B%E5%AE%B4" target="_blank" rel="noopener">
-      <img class="thumb" src="./screenshots/soccer.png" alt="足球盛宴" loading="lazy">
-      <div class="meta">
-        <div class="name">足球盛宴<span class="en">Violent Soccer</span></div>
-        <div class="tag">足球对抗 · 2–12 人</div>
-      </div>
-      <div class="action">
-        <span class="btn btn-code">源码</span>
-        <div class="hint">需本地运行</div>
-      </div>
-    </a>
-
-    <a class="row" href="./games/sfh/?local=1">
-      <img class="thumb" src="./screenshots/sfh.png" alt="战火英雄" loading="lazy">
-      <div class="meta">
-        <div class="name">战火英雄<span class="en">Strike Force Heroes</span></div>
-        <div class="tag">横版射击 · 单机对战 AI</div>
-      </div>
-      <div class="action">
-        <span class="btn btn-play">▶ 试玩</span>
-      </div>
-    </a>
-
-    <a class="row" href="./drive/">
+    <div class="row">
       <img class="thumb" src="./screenshots/immersive-drive.png" alt="沉浸驾驶" loading="lazy">
       <div class="meta">
         <div class="name">沉浸驾驶<span class="en">Immersive Drive</span></div>
-        <div class="tag">第一人称座舱 · 单机</div>
+        <div class="tags">
+          <span class="genre">第一人称座舱 · 单机</span>
+          <span class="pill pill-online">在线即完整</span>
+        </div>
       </div>
-      <div class="action">
-        <span class="btn btn-play">▶ 试玩</span>
+      <div class="actions">
+        <a class="btn btn-play" href="./drive/">▶ 试玩</a>
+        <a class="btn btn-code btn-sub" href="https://github.com/1441662404/ai-arcade/tree/main/%E6%B2%89%E6%B5%B8%E9%A9%BE%E9%A9%B6" target="_blank" rel="noopener">源码</a>
       </div>
-    </a>
+    </div>
 
+    <div class="row">
+      <img class="thumb" src="./screenshots/mountain-pass.png" alt="山路传说" loading="lazy">
+      <div class="meta">
+        <div class="name">山路传说<span class="en">Mountain Pass Legend</span></div>
+        <div class="tags">
+          <span class="genre">漂移夜战 · 竞速</span>
+          <span class="pill pill-local">在线为单人计时</span>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-play" href="./games/mountain-pass/">▶ 试玩</a>
+        <a class="btn btn-code btn-sub" href="https://github.com/1441662404/ai-arcade/tree/main/%E5%B1%B1%E8%B7%AF%E4%BC%A0%E8%AF%B4" target="_blank" rel="noopener">源码</a>
+      </div>
+    </div>
+
+    <div class="row">
+      <img class="thumb" src="./screenshots/sfh.png" alt="战火英雄" loading="lazy">
+      <div class="meta">
+        <div class="name">战火英雄<span class="en">Strike Force Heroes</span></div>
+        <div class="tags">
+          <span class="genre">横版射击 · 组队</span>
+          <span class="pill pill-local">在线为打 AI</span>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-play" href="./games/sfh/?local=1">▶ 试玩</a>
+        <a class="btn btn-code btn-sub" href="https://github.com/1441662404/ai-arcade/tree/main/%E6%88%98%E7%81%AB%E8%8B%B1%E9%9B%84" target="_blank" rel="noopener">源码</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ 仅本地运行 ============ -->
+  <div class="group">
+    <h2>⌨ 仅本地运行</h2>
+    <span class="count">4 款</span>
+  </div>
+  <p class="group-desc">物理计算在服务端，浏览器托管跑不起来，需要下载后在本地启动。</p>
+
+  <div class="list">
+
+    <div class="row">
+      <img class="thumb" src="./screenshots/sky-dogfight.png" alt="云端之刺" loading="lazy">
+      <div class="meta">
+        <div class="name">云端之刺<span class="en">Sky Dogfight</span></div>
+        <div class="tags">
+          <span class="genre">空战 · 2–16 人联机</span>
+          <span class="pill pill-local">需 Node 服务端</span>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-code" href="https://github.com/1441662404/ai-arcade/tree/main/Cloud%20Thorn/sky-dogfight" target="_blank" rel="noopener">查看源码</a>
+      </div>
+    </div>
+
+    <div class="row">
+      <img class="thumb" src="./screenshots/nbike.png" alt="山道飞骑" loading="lazy">
+      <div class="meta">
+        <div class="name">山道飞骑<span class="en">Nbike Alpine</span></div>
+        <div class="tags">
+          <span class="genre">自行车竞速 · 2–12 人联机</span>
+          <span class="pill pill-local">需 Node 服务端</span>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-code" href="https://github.com/1441662404/ai-arcade/tree/main/Nbike" target="_blank" rel="noopener">查看源码</a>
+      </div>
+    </div>
+
+    <div class="row">
+      <img class="thumb" src="./screenshots/poop-hero.png" alt="便便英雄" loading="lazy">
+      <div class="meta">
+        <div class="name">便便英雄<span class="en">Poop Hero</span></div>
+        <div class="tags">
+          <span class="genre">竞技场乱斗 · 2–12 人联机</span>
+          <span class="pill pill-local">需 Node 服务端</span>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-code" href="https://github.com/1441662404/ai-arcade/tree/main/%E4%BE%BF%E4%BE%BF%E8%8B%B1%E9%9B%84" target="_blank" rel="noopener">查看源码</a>
+      </div>
+    </div>
+
+    <div class="row">
+      <img class="thumb" src="./screenshots/soccer.png" alt="足球盛宴" loading="lazy">
+      <div class="meta">
+        <div class="name">足球盛宴<span class="en">Violent Soccer</span></div>
+        <div class="tags">
+          <span class="genre">足球对抗 · 2–12 人联机</span>
+          <span class="pill pill-local">需 Node 服务端</span>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-code" href="https://github.com/1441662404/ai-arcade/tree/main/%E8%B6%B3%E7%90%83%E7%9B%9B%E5%AE%B4" target="_blank" rel="noopener">查看源码</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ 本地启动方式 ============ -->
+  <div class="cmdbox">
+    <div class="cmdbox-head">本地运行全部七款 · 需要 Node.js 18+</div>
+    <pre><span class="c"># 进入任意游戏目录，装依赖后启动</span>
+<span class="g">cd</span> Nbike
+<span class="g">npm</span> install
+<span class="g">npm</span> start          <span class="c"># → http://localhost:3000</span>
+
+<span class="c"># 同时开两款，用端口区分</span>
+<span class="g">PORT</span>=3001 <span class="g">npm</span> start</pre>
   </div>
 
   <footer>
     代码 <a href="https://github.com/1441662404/ai-arcade/blob/main/LICENSE" target="_blank" rel="noopener">MIT 开源</a>
     · <a href="https://github.com/1441662404/ai-arcade" target="_blank" rel="noopener">GitHub 仓库</a>
-    <br>
-    本地运行：<code>cd Nbike &amp;&amp; npm install &amp;&amp; npm start</code>
+    · 素材授权说明见 README
   </footer>
 
 </div>

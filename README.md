@@ -14,6 +14,23 @@ Node.js + Three.js + WebSocket 权威服务器 · 浏览器直接开打 · 无�
 
 ## 七款游戏
 
+**三款可以在线试玩**（单机 / 打 AI 版），**七款全部支持本地联机**。
+
+| 游戏 | 类型 | 在线试玩 | 本地联机 |
+|---|---|:---:|:---:|
+| 沉浸驾驶 | 第一人称座舱 | ✅ 完整 | — |
+| 山路传说 | 漂移竞速 | ⚠️ 仅单人计时 | ✅ |
+| 战火英雄 | 横版射击 | ⚠️ 仅打 AI | ✅ |
+| 云端之刺 | 空战 | — | ✅ |
+| 山道飞骑 | 自行车竞速 | — | ✅ |
+| 便便英雄 | 竞技场乱斗 | — | ✅ |
+| 足球盛宴 | 足球对抗 | — | ✅ |
+
+> 在线版之所以是单机版：GitHub Pages 只能托管静态文件，无法运行 Node 服务端。
+> 需要多人联机请按下方命令在本地启动，或自行部署到 Node 托管平台。
+
+---
+
 ### ✈ 云端之刺 · Sky Dogfight
 
 ![云端之刺](docs/screenshots/sky-dogfight.png)
@@ -60,9 +77,11 @@ cd 便便英雄 && npm install && npm start
 
 ![山路传说](docs/screenshots/mountain-pass.png)
 
-**漂移夜战 · 2–10 人**
+**漂移夜战 · 2–10 人联机**
 
 雾见山下坡夜战。零依赖自研 WebSocket 同步，轮胎打滑与惯性漂移都在服务器演算，五连发夹弯见真章。
+
+[**▶ 在线试玩（单人计时版）**](https://1441662404.github.io/ai-arcade/games/mountain-pass/) —— 车辆物理在客户端，所以单人模式可以纯静态运行。
 
 ```bash
 cd 山路传说 && npm install && npm start
@@ -88,9 +107,11 @@ cd 足球盛宴 && npm install && npm start
 
 ![战火英雄](docs/screenshots/sfh.png)
 
-**横版射击 · 2–12 人**
+**横版射击 · 2–12 人联机**
 
 经典 2D 横版射击。四大兵种、数十种枪械、三张多层地图。服务端权威 60Hz 推演，最多 12 人同房，支持 5 人组队开黑。
+
+[**▶ 在线试玩（单机打 AI）**](https://1441662404.github.io/ai-arcade/games/sfh/?local=1) —— 客户端与服务端共用 `shared/sim.js` 与 `shared/ai.js`，[`js/local.js`](战火英雄/js/local.js) 把服务端那套循环搬进了浏览器。带 `?local=1` 时启用，不带则正常联机。
 
 ```bash
 cd 战火英雄 && npm install && npm start
