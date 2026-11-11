@@ -3,9 +3,13 @@
  */
 
 import { Net } from './net.js';
+import { LocalNet } from './local.js';
 import { Renderer } from './render.js';
 import { Input, Predictor } from './input.js';
 import * as audio from './audio.js';
+
+/* 单机模式：URL 带 ?local=1 时启用浏览器内的本地服务端（用于静态托管试玩） */
+const LOCAL_MODE = new URLSearchParams(location.search).has('local');
 
 import { World, currentWeapon } from '../shared/sim.js';
 import {
@@ -488,8 +492,8 @@ function escapeHtml(s) {
 /*  网络                                                             */
 /* ================================================================ */
 function connect() {
-  S.net = new Net();
-  showOverlay('正在连接服务器…');
+  S.net = LOCAL_MODE ? new LocalNet({ name: S.name || '士兵', cls: S.cls || 'assault' }) : new Net();
+  showOverlay(LOCAL_MODE ? '正在准备本地战局…' : '正在连接服务器…');
 
   S.net.on('welcome', (m) => {
     hideOverlay();
@@ -672,6 +676,11 @@ function startPlaying(mapId) {
   el.killfeed.innerHTML = '';
   el.hpFill.style.width = '100%';
   audio.play('spawn');
+
+  /* 单机模式：把刚建好的 world 交给本地服务端接管，之后由它每帧 step */
+  if (LOCAL_MODE && S.net && typeof S.net.adoptWorld === 'function') {
+    S.net.adoptWorld(S.world);
+  }
 }
 
 /* ================================================================ */
@@ -1275,7 +1284,13 @@ function tickPlaying(dt) {
   if (me) {
     S.input.aim = S.input.computeAim(me, R);
     if (me.alive) {
-      S.predictor.step(me, S.input.keys, S.input.aim, world, dt);
+      if (LOCAL_MODE) {
+        /* 单机：移动由本地服务端的 world.step() 统一结算，这里只喂输入，
+           否则本地预测和权威模拟会各移动一次，人物会走双倍距离 */
+        me.aim = S.input.aim;
+      } else {
+        S.predictor.step(me, S.input.keys, S.input.aim, world, dt);
+      }
       me.keys = S.input.keys;
       // 本地武器表现（换弹、枪口闪光的视觉节奏）
       const w = currentWeapon(me);

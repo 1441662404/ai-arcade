@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>战火英雄 · 联机横版</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d1621'/%3E%3Ccircle cx='16' cy='13' r='6' fill='%23ff8a3d'/%3E%3Crect x='10' y='19' width='12' height='9' rx='2' fill='%233fa9ff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<!-- ================= 主菜单 ================= -->
+<div id="screen-menu" class="screen active">
+  <div class="menu-bg"></div>
+  <div class="menu-inner">
+    <div class="logo">
+      <div class="logo-sub">STRIKE LINE</div>
+      <h1>战火英雄</h1>
+      <div class="logo-tag">2D 横版 · 联机组队 · 战役推进</div>
+    </div>
+
+    <div class="menu-panel">
+      <div id="level-badge" class="level-badge"></div>
+
+      <label class="field">
+        <span>你的代号</span>
+        <input id="inp-name" maxlength="12" placeholder="士兵" value="">
+      </label>
+
+      <div class="field">
+        <span>兵种</span>
+        <div id="menu-class" class="class-row"></div>
+      </div>
+
+      <div class="btn-row">
+        <button id="btn-solo" class="btn primary">单机开战 <em>立刻开打</em></button>
+        <button id="btn-create" class="btn">创建房间 <em>联机组队</em></button>
+      </div>
+
+      <div class="join-row">
+        <input id="inp-code" maxlength="6" placeholder="输入 6 位房间码" autocomplete="off">
+        <button id="btn-join" class="btn small">加入</button>
+      </div>
+
+      <div id="room-list" class="room-list"></div>
+    </div>
+
+    <div class="hint">
+      <span><b>A/D</b> 移动</span>
+      <span><b>W/空格</b> 跳跃</span>
+      <span><b>S</b> 下蹲/举盾</span>
+      <span><b>鼠标</b> 瞄准</span>
+      <span><b>左键</b> 射击</span>
+      <span><b>R</b> 换弹</span>
+      <span><b>Q</b> 换枪</span>
+      <span><b>E</b> 技能</span>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 房间/部署 ================= -->
+<div id="screen-lobby" class="screen">
+  <div class="lobby-wrap">
+    <div class="lobby-head">
+      <div>
+        <h2 id="lobby-title">房间</h2>
+        <div id="lobby-sub" class="sub">等待玩家</div>
+      </div>
+      <div class="lobby-code">
+        <span>房间码</span>
+        <b id="lobby-code">—</b>
+        <button id="btn-copy" class="btn tiny">复制</button>
+      </div>
+    </div>
+
+    <div class="lobby-body">
+      <div class="lobby-col">
+        <h3>队伍</h3>
+        <div id="lobby-teams" class="teams"></div>
+      </div>
+
+      <div class="lobby-col wide">
+        <h3>部署配置</h3>
+        <div class="cfg-grid">
+          <label class="field">
+            <span>模式</span>
+            <div id="cfg-mode" class="seg"></div>
+          </label>
+          <label class="field" id="cfg-map-row">
+            <span>地图</span>
+            <div id="cfg-map" class="seg"></div>
+          </label>
+          <label class="field" id="cfg-level-row" style="display:none">
+            <span>战役关卡</span>
+            <div id="cfg-level" class="seg lvl-row"></div>
+            <div id="level-info" class="level-info"></div>
+          </label>
+          <label class="field">
+            <span>AI 难度</span>
+            <div id="cfg-diff" class="seg"></div>
+          </label>
+          <label class="field">
+            <span>AI 数量</span>
+            <div class="slider-row">
+              <input type="range" id="cfg-bots" min="0" max="11" value="7">
+              <b id="cfg-bots-val">7</b>
+            </div>
+          </label>
+        </div>
+
+        <h3>武器</h3>
+        <div id="lobby-weapons" class="weapon-grid"></div>
+      </div>
+    </div>
+
+    <div class="lobby-foot">
+      <button id="btn-leave" class="btn small">离开房间</button>
+      <button id="btn-start" class="btn primary big">开始战斗</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= HUD ================= -->
+<div id="hud" class="hud">
+  <div class="hud-top">
+    <div class="score-box">
+      <div class="team blue"><span class="tn" id="score-blue-lbl">蓝队</span><b id="score-blue">0</b></div>
+      <div class="mid"><span id="hud-mode">团队死斗</span><b id="hud-time">8:00</b></div>
+      <div class="team red"><b id="score-red">0</b><span class="tn" id="score-red-lbl">红队</span></div>
+    </div>
+    <div id="hud-points" class="points"></div>
+  </div>
+
+  <div class="hud-left">
+    <canvas id="minimap"></canvas>
+  </div>
+
+  <div class="hud-bottom">
+    <div class="hp-wrap">
+      <div class="hp-label"><span id="hp-class">突击兵</span><b id="hp-num">130</b></div>
+      <div class="hp-bar"><i id="hp-fill"></i></div>
+    </div>
+
+    <div class="weapon-wrap">
+      <div class="w-slot" id="w-primary">
+        <div class="w-name">主武器</div>
+        <div class="w-ammo"><b>30</b><span>/90</span></div>
+      </div>
+      <div class="w-slot" id="w-secondary">
+        <div class="w-name">副武器</div>
+        <div class="w-ammo"><b>15</b><span>/120</span></div>
+      </div>
+    </div>
+
+    <div class="skill-wrap">
+      <div class="skill-ring" id="skill-ring">
+        <span id="skill-icon">⚡</span>
+      </div>
+      <div class="skill-name" id="skill-name">技能</div>
+      <div class="skill-need" id="skill-need">0 / 5</div>
+    </div>
+  </div>
+
+  <div id="reload-hint" class="reload-hint">装填中…</div>
+  <div id="killfeed" class="killfeed"></div>
+  <div id="respawn-tip" class="respawn-tip"></div>
+  <div id="big-center" class="big-center"></div>
+</div>
+
+<!-- ================= 结算 ================= -->
+<div id="screen-result" class="screen">
+  <div class="result-wrap">
+    <h1 id="result-title">战斗结束</h1>
+    <div id="result-sub" class="sub"></div>
+    <div id="result-xp" class="result-xp"></div>
+    <div id="result-table" class="result-table"></div>
+    <div class="result-foot">
+      <button id="btn-again" class="btn primary">再来一局</button>
+      <button id="btn-back" class="btn">返回大厅</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 连接提示 ================= -->
+<div id="overlay" class="overlay">
+  <div class="ov-box">
+    <div class="ov-spin"></div>
+    <div id="ov-text">正在连接服务器…</div>
+    <div id="ov-err" class="ov-err"></div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
