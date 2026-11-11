@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>游戏详情 · AI Arcade</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #fff; color: #111827;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    line-height: 1.75; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 28px 24px 90px; }
+
+  /* 返回 */
+  .back {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; color: #6b7280; text-decoration: none;
+    margin-bottom: 26px;
+  }
+  .back:hover { color: #111827; }
+
+  /* 头图 */
+  .hero {
+    width: 100%; border-radius: 12px; display: block;
+    border: 1px solid #e5e7eb; background: #f3f4f6;
+    margin-bottom: 30px;
+  }
+
+  h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 6px; }
+  h1 .en { font-size: 15px; font-weight: 400; color: #9ca3af; margin-left: 8px; letter-spacing: .5px; }
+
+  .meta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 26px; }
+  .pill {
+    font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 5px;
+    background: #f3f4f6; color: #374151;
+  }
+  .pill.live { background: #dcfce7; color: #15803d; }
+  .pill.local { background: #fef3c7; color: #92400e; }
+
+  .tagline { font-size: 16px; color: #4b5563; margin-bottom: 30px; }
+
+  /* 区块 */
+  h2 {
+    font-size: 17px; font-weight: 700; margin: 38px 0 14px;
+    padding-bottom: 9px; border-bottom: 1px solid #e5e7eb;
+  }
+  p { font-size: 14.5px; color: #374151; margin-bottom: 12px; }
+
+  /* 玩法要点 */
+  .feat { margin-bottom: 18px; }
+  .feat b { display: block; font-size: 14.5px; color: #111827; margin-bottom: 3px; }
+  .feat span { font-size: 13.5px; color: #6b7280; }
+
+  /* 操作表 */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid #f3f4f6; }
+  th { color: #9ca3af; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  td:first-child {
+    width: 34%; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px; color: #111827; font-weight: 600;
+  }
+
+  /* 技术点 */
+  ul.tech { list-style: none; }
+  ul.tech li {
+    font-size: 13.5px; color: #4b5563; padding-left: 18px;
+    position: relative; margin-bottom: 7px;
+  }
+  ul.tech li::before {
+    content: ""; position: absolute; left: 4px; top: 10px;
+    width: 5px; height: 5px; border-radius: 50%; background: #d1d5db;
+  }
+
+  /* 操作区 */
+  .actions { margin-top: 34px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 11px 22px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent; transition: .15s;
+  }
+  .btn-play { background: #2563eb; color: #fff; }
+  .btn-play:hover { background: #1d4ed8; }
+  .btn-code { border-color: #e5e7eb; color: #374151; }
+  .btn-code:hover { background: #f9fafb; }
+
+  .cmdbox {
+    margin-top: 16px; border: 1px solid #e5e7eb; border-radius: 8px;
+    background: #fafafa; padding: 14px 16px; font-size: 12.5px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: #374151; overflow-x: auto;
+  }
+  .note {
+    margin-top: 12px; font-size: 12.5px; color: #9ca3af;
+  }
+
+  footer {
+    margin-top: 50px; padding-top: 22px; border-top: 1px solid #e5e7eb;
+    font-size: 12.5px; color: #9ca3af;
+  }
+  footer a { color: #2563eb; text-decoration: none; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 20px 16px 60px; }
+    h1 { font-size: 23px; }
+    h1 .en { display: block; margin-left: 0; font-size: 13px; }
+    td:first-child { width: 40%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ============================================================
+   游戏数据（内容依据各项目源码里的规则与按键绑定整理）
+   ============================================================ */
+const GAMES = {
+  'sky-dogfight': {
+    name: '云端之刺', en: 'Sky Dogfight', genre: '空战 · 团队对抗', players: '2–16 人',
+    hero: './screenshots/sky-dogfight.png',
+    tagline: '在云海之上缠斗，也能换乘舰船下海作战。',
+    online: null,
+    onlineNote: '飞行物理在服务端计算，需要先在本地启动服务端才能玩。',
+    intro: [
+      '驾驶战机从机场跑道滑跑起飞，在 12km × 12km 的程序化地形上空争夺制空权。地图上散布着两座机场，起飞后可自由爬升、俯冲、翻滚，也可以用机炮与导弹咬住对手的六点钟方向。',
+      '除了空战，地图上还有可驾驶的舰船。降落水面附近换乘后，战斗会从三维空域压到海面，主炮与鱼雷的节奏和空战完全不同。',
+      '团队模式按击落数计分。被击落后会回到本方机场重生，所以守住机场上空往往比追人头更重要。',
+    ],
+    features: [
+      { t: '真实飞行手感', d: '升力、失速、阻力、重力逐项建模，速度过低会掉高度甚至进入螺旋，不是街机式的转向。' },
+      { t: '双载具切换', d: '战机与舰船各有独立物理模型，同一场战斗里可以换乘。' },
+      { t: '程序化地形', d: '地形由 value noise + fbm 生成，服务端与客户端用同一份代码，保证两边看到的世界完全一致。' },
+      { t: 'AI 陪练', d: '空服务器会自动补机器人飞行员，它们走和真人相同的输入通道，不直接改位置，所以不会破坏计分。' },
+    ],
+    controls: [
+      { k: '鼠标', d: '控制飞行姿态（俯仰 / 滚转）' },
+      { k: 'W / S', d: '加油门 / 收油门' },
+      { k: 'A / D', d: '方向舵偏航' },
+      { k: '左键 / 空格', d: '开火（机炮）' },
+      { k: 'X', d: '发射导弹' },
+      { k: 'R', d: '重置 / 复位机体' },
+      { k: 'V', d: '切换视角' },
+      { k: 'ESC', d: '解除鼠标锁定' },
+    ],
+    tech: [
+      '服务端权威模拟 + 客户端预测回滚，两端共享同一份 flight-physics.js',
+      '地形完全程序化生成，仓库里没有一张贴图',
+      '机炮、导弹、舰船主炮各自独立的命中判定与伤害模型',
+      '客户端与服务端逐帧同步飞行动力学，滚转、失速、机炮都按真机手感调校',
+    ],
+    repo: 'https://github.com/1441662404/ai-arcade/tree/main/Cloud%20Thorn/sky-dogfight',
+    cmd: 'cd "Cloud Thorn/sky-dogfight" && npm install && npm start',
+  },
+
+  soccer: {
+    name: '足球盛宴', en: 'Violent Soccer', genre: '足球对抗', players: '2–12 人',
+    hero: './screenshots/soccer.png',
+    tagline: '铲抢、冲撞、倒钩样样都来的暴力足球。',
+    online: null,
+    onlineNote: '球体物理与球员 AI 在服务端，需要先在本地启动服务端才能玩。',
+    intro: [
+      '3D 第三人称足球，但规则比现实宽松得多：可以滑铲、可以冲撞、可以倒钩。球场上有完整的守门员 AI 和队友 AI，人不够时会自动补位。',
+      '击球不是简单的"碰到就踢"。你要先用方向键把击球点挪到球附近，再控制射门仰角——看天就是高球上吊，看地就是贴地抽射。蓄力越久球速越快，但对手也会读你的动作。',
+      '带球有吸附机制，高速跑动时球会贴脚；按 Q 在"踢球"和"攻击"之间切换，攻击状态下可以撞开防守球员。',
+    ],
+    features: [
+      { t: '击球点系统', d: '用方向键移动击球红点，配合鼠标上下调整仰角，同一个球能打出挑射、抽射、贴地斩。' },
+      { t: '蓄力与滑铲', d: '长按蓄力提高球速，滑铲用于断球或破坏对手节奏，都有硬直代价。' },
+      { t: 'AI 守门员', d: '守门员会根据球的轨迹预判扑救，动作和判定绑定——模型没扑到就不会拦下球。' },
+      { t: '观战与语音', d: '支持观战模式，也内置了语音转盘用于快速沟通。' },
+    ],
+    controls: [
+      { k: 'WASD', d: '移动' },
+      { k: 'Shift', d: '疾跑' },
+      { k: 'Ctrl', d: '慢走（精细控球）' },
+      { k: '空格', d: '跳跃' },
+      { k: '方向键', d: '移动击球点红点（移动时不再控制角色）' },
+      { k: '鼠标', d: '上下调射门仰角：看天=高球上吊，看地=贴地球' },
+      { k: '鼠标侧键', d: '按住 + 移动鼠标，调整击球方向' },
+      { k: 'C', d: '滑铲' },
+      { k: 'Q', d: '切换「踢球 ↔ 攻击」，跳舞模式下变为选舞转盘' },
+      { k: 'ESC', d: '解除鼠标锁定' },
+    ],
+    tech: [
+      '30Hz 权威主循环驱动球体物理，摩擦、弹跳、旋转都在服务端算',
+      '守门员与队友 AI 走完整状态机，扑救动作与拦截判定绑定',
+      '击球判定分「第一脚触球」与「正前方脚下范围」两层',
+      '支持观战视角与语音转盘',
+    ],
+    repo: 'https://github.com/1441662404/ai-arcade/tree/main/%E8%B6%B3%E7%90%83%E7%9B%9B%E5%AE%B4',
+    cmd: 'cd 足球盛宴 && npm install && npm start',
+  },
+
+  'poop-hero': {
+    name: '便便英雄', en: 'Poop Hero', genre: '第一人称竞技场', players: '2–12 人（在线版打 AI）',
+    hero: './screenshots/poop-hero.png',
+    tagline: '第一人称下水道大乱斗，弹药是"备屎量"。',
+    online: './games/poop-hero/?local=1',
+    onlineNote: '在线版为单机打 AI，会自带 5 个机器人对手。完整联机需本地运行。',
+    intro: [
+      '第一人称视角的竞技场射击。场上是一圈木箱围起来的开阔地，可以跳跃、翻滚、爬箱子，靠地形和身法躲子弹。',
+      '最有意思的是资源系统：开枪消耗「备屎量」，喷气飞行、扔手雷、翻滚也要消耗，而它恢复得很慢。所以不能一直扣扳机，得算着用，这逼着你打一段躲一段。',
+      '技能分三种：声波弹、滚粪球、糊视野。糊视野是给对手屏幕糊上一层，配合近身突袭很有效。',
+    ],
+    features: [
+      { t: '备屎量资源', d: '子弹与技能共用同一份资源，恢复慢、消耗快，逼你在进攻和保存之间取舍。' },
+      { t: '喷气飞行', d: '消耗备屎量起飞，可以抢占箱子顶部的高点，飞行时无法开枪。' },
+      { t: '翻滚闪避', d: '翻滚有短暂无敌帧，用来躲子弹与手雷，判定按 60Hz 逐帧计算。' },
+      { t: '连杀奖励', d: '3.5 秒内连续击杀会累积连杀，鼓励一鼓作气而不是打一枪换一个地方。' },
+    ],
+    controls: [
+      { k: 'WASD', d: '移动' },
+      { k: '空格', d: '跳跃' },
+      { k: '鼠标', d: '视角 / 瞄准' },
+      { k: '左键', d: '射击（消耗备屎量）' },
+      { k: 'E', d: '声波弹' },
+      { k: 'Q', d: '滚粪球' },
+      { k: 'C', d: '糊视野' },
+      { k: 'Shift', d: '翻滚闪避' },
+      { k: 'ESC', d: '释放鼠标' },
+    ],
+    tech: [
+      '服务端 60Hz 逻辑帧做命中判定，客户端只负责渲染与预测',
+      '重力、碰撞、射线命中（ray-AABB）全部服务端结算',
+      '翻滚的每一帧都参与判定，不是简单的"无敌几秒"',
+      '在线单机版把服务端第 19–956 行纯逻辑整体搬进浏览器，客户端渲染零改动',
+    ],
+    repo: 'https://github.com/1441662404/ai-arcade/tree/main/%E4%BE%BF%E4%BE%BF%E8%8B%B1%E9%9B%84',
+    cmd: 'cd 便便英雄 && npm install && npm start',
+  },
+
+  'mountain-pass': {
+    name: '山路传说', en: 'Mountain Pass Legend', genre: '漂移 · 夜战竞速', players: '2–10 人（在线版单人计时）',
+    hero: './screenshots/mountain-pass.png',
+    tagline: '雾见山下坡夜战，5.1 公里五连发夹弯。',
+    online: './games/mountain-pass/',
+    onlineNote: '在线版为单人计时赛，车辆物理在客户端，所以能纯静态运行。',
+    intro: [
+      '夜间山路下坡竞速。赛道全长 5.1 公里，连续的 S 弯和五连发夹弯，路灯只照亮路面的一小段，靠记忆和车灯走线。',
+      '漂移是核心：入弯前松油门配合方向，车尾甩出去后靠反打方向维持角度，漂移过程中累积分数。撞护栏会掉速，掉出赛道按 R 回到路面。',
+    ],
+    features: [
+      { t: '夜间照明', d: '车灯与路灯是真实光源，弯道外侧看不清，必须靠对向路牌的预判。' },
+      { t: '漂移计分', d: '甩尾角度与持续时间决定得分，一口气跑完长弯比零碎漂移更值。' },
+      { t: '零依赖网络', d: '自研 WebSocket（RFC6455）实现，不依赖 socket.io，服务端只有 396 行。' },
+    ],
+    controls: [
+      { k: 'W / ↑', d: '油门' },
+      { k: 'S / ↓', d: '刹车' },
+      { k: 'A / D', d: '转向' },
+      { k: '空格', d: '手刹（漂移）' },
+      { k: 'R', d: '回到赛道' },
+      { k: 'C', d: '切换视角' },
+    ],
+    tech: [
+      '零依赖服务端：静态文件 + 自研 WebSocket，无第三方库',
+      '车辆物理完全在客户端，服务端只转发位置，因此单人模式可纯静态运行',
+      '轮胎打滑与惯性漂移由物理求解，不是脚本动画',
+    ],
+    repo: 'https://github.com/1441662404/ai-arcade/tree/main/%E5%B1%B1%E8%B7%AF%E4%BC%A0%E8%AF%B4',
+    cmd: 'cd 山路传说 && npm install && npm start',
+  },
+
+  sfh: {
+    name: '战火英雄', en: 'Strike Force Heroes', genre: '横版射击 · 组队', players: '2–12 人（在线版打 AI）',
+    hero: './screenshots/sfh.png',
+    tagline: '四大兵种、数十种枪械、三张多层地图的横版射击。',
+    online: './games/sfh/?local=1',
+    onlineNote: '在线版为单机打 AI。客户端与服务端共用 sim.js 与 ai.js，因此能搬到浏览器。',
+    intro: [
+      '经典 2D 横版射击：跳跃、翻滚、开镜、换弹、扔手雷，左右两侧推进。三张地图都有多层平台，可以上下绕后。',
+      '四大兵种各有专属技能与武器池，升级会解锁新枪械。打得越久，能用的武器越多。',
+    ],
+    features: [
+      { t: '四大兵种', d: '突击、医疗、狙击、重装，技能与武器池各不相同。' },
+      { t: '武器解锁', d: '通过击杀累积进度，逐把解锁数十种枪械，每把后坐力与射速都不同。' },
+      { t: 'AI 队友与敌人', d: '人不够时自动补位，AI 会寻路、找掩体、开火。' },
+    ],
+    controls: [
+      { k: 'A / D', d: '左右移动' },
+      { k: 'W / 空格', d: '跳跃' },
+      { k: 'S', d: '下蹲' },
+      { k: '鼠标', d: '瞄准' },
+      { k: '左键', d: '射击' },
+      { k: 'R', d: '换弹' },
+      { k: 'Q', d: '切换武器' },
+      { k: 'E', d: '技能' },
+    ],
+    tech: [
+      '客户端与服务端共用 shared/sim.js（1303 行物理）与 shared/ai.js（713 行 AI）',
+      '服务端权威 60Hz 推演，客户端只做本地预测',
+      '在线单机版由 js/local.js 在浏览器内复现服务端的建世界 / 补 bot / 每帧 step',
+    ],
+    repo: 'https://github.com/1441662404/ai-arcade/tree/main/%E6%88%98%E7%81%AB%E8%8B%B1%E9%9B%84',
+    cmd: 'cd 战火英雄 && npm install && npm start',
+  },
+
+  nbike: {
+    name: '山道飞骑', en: 'Nbike Alpine', genre: '自行车竞速', players: '2–12 人（在线版自由骑行）',
+    hero: './screenshots/nbike.png',
+    tagline: '环法式山道速降，摇车、卡位、跟车吸尾流。',
+    online: './games/nbike/?local=1',
+    onlineNote: '在线版为自由骑行（可正常骑、看仪表，无对手）。',
+    intro: [
+      '写实风格的公路车下坡竞速。不是"按油门就走"，而是要像真的骑车一样：左右脚交替踩踏、维持踏频、在合适的时候换挡。',
+      '坡度会真实影响速度：陡坡不踩也会加速，上坡踩不动就掉速。跟在前车后面能吃到尾流，省力但容易追尾。',
+    ],
+    features: [
+      { t: '左右脚踩踏', d: 'A / D 分别代表左右脚发力，踏频与力矩实时显示，踩反了会有提示。' },
+      { t: '变速与齿比', d: '需要根据坡度手动换挡，挡位不对会踩空或踩不动。' },
+      { t: '体力系统', d: '持续高强度输出会掉体力，逼你在冲刺和保存之间分配。' },
+    ],
+    controls: [
+      { k: 'A / D', d: '左脚 / 右脚踩踏' },
+      { k: '↑ / ↓', d: '换挡' },
+      { k: '空格', d: '刹车' },
+      { k: 'Shift', d: '摇车（站姿发力）' },
+      { k: 'Enter', d: '发起 / 退出比赛' },
+      { k: 'C', d: '切换视角' },
+    ],
+    tech: [
+      '客户端每帧跑 Physics.step 做预测，物理与服务端逐项一致',
+      'shared/constants.js、physics.js、track.js 为双模导出，服务端 require、浏览器挂全局',
+      '在线单机版用假 socket 拦截回调，本地按同构格式喂 state，渲染与 HUD 零改动',
+    ],
+    repo: 'https://github.com/1441662404/ai-arcade/tree/main/Nbike',
+    cmd: 'cd Nbike && npm install && npm start',
+  },
+
+  'immersive-drive': {
+    name: '沉浸驾驶', en: 'Immersive Drive', genre: '第一人称座舱 · 单机', players: '1 人',
+    hero: './screenshots/immersive-drive.png',
+    tagline: '第一人称座舱，仪表、方向盘、后视镜实时联动。',
+    online: './drive/',
+    onlineNote: '纯前端应用，在线版就是完整版。',
+    intro: [
+      '坐进驾驶座，从点火开始：踩离合、按点火键、挂一档、松手刹，然后用鼠标画圈带动方向盘。仪表盘上转速、车速、挡位都是实时计算的。',
+      '中控屏可以切歌，内置 Eurobeat 歌单。山路两侧有护栏，撞上会掉速。',
+    ],
+    features: [
+      { t: '真实点火流程', d: '不是按一下就走：离合、点火、挂挡、手刹，少一步都开不动。' },
+      { t: '鼠标操控方向盘', d: '用鼠标画圈模拟打方向，方向盘角度与车轮转向联动。' },
+      { t: '座舱细节', d: '仪表、后视镜、换挡杆都可交互，中控屏能切歌。' },
+    ],
+    controls: [
+      { k: '鼠标拖动', d: '转动方向盘' },
+      { k: 'A', d: '踩离合' },
+      { k: 'E', d: '点火' },
+      { k: '空格', d: '手刹' },
+      { k: 'Shift', d: '切换挡位' },
+      { k: 'ESC', d: '解除鼠标锁定' },
+    ],
+    tech: [
+      '纯前端应用，零服务端依赖，可以直接静态托管',
+      '所有模型、天空、海面程序化生成，仓库里没有一张贴图',
+      '仪表数值由车辆物理实时驱动，不是贴图动画',
+    ],
+    repo: 'https://github.com/1441662404/ai-arcade/tree/main/%E6%B2%89%E6%B5%B8%E9%A9%BE%E9%A9%B6',
+    cmd: 'cd 沉浸驾驶 && npm start',
+  },
+};
+
+/* ============================================================ */
+const slug = new URLSearchParams(location.search).get('g') || 'sky-dogfight';
+const g = GAMES[slug] || GAMES['sky-dogfight'];
+
+document.title = g.name + ' · AI Arcade';
+
+const onlineBtn = g.online
+  ? `<a class="btn btn-play" href="${g.online}">▶ 在线试玩</a>`
+  : `<span class="btn btn-code" style="cursor:default;color:#9ca3af">需本地运行</span>`;
+
+document.getElementById('app').innerHTML = `
+  <a class="back" href="./">← 返回全部游戏</a>
+
+  <img class="hero" src="${g.hero}" alt="${g.name}">
+
+  <h1>${g.name}<span class="en">${g.en}</span></h1>
+  <div class="meta-row">
+    <span class="pill">${g.genre}</span>
+    <span class="pill">${g.players}</span>
+    ${g.online ? '<span class="pill live">✓ 可在线试玩</span>' : '<span class="pill local">需 Node 服务端</span>'}
+  </div>
+
+  <p class="tagline">${g.tagline}</p>
+
+  <h2>玩法</h2>
+  ${g.intro.map((t) => `<p>${t}</p>`).join('')}
+
+  <h2>玩法要点</h2>
+  ${g.features.map((f) => `<div class="feat"><b>${f.t}</b><span>${f.d}</span></div>`).join('')}
+
+  <h2>操作说明</h2>
+  <table>
+    <tr><th>按键</th><th>作用</th></tr>
+    ${g.controls.map((c) => `<tr><td>${c.k}</td><td>${c.d}</td></tr>`).join('')}
+  </table>
+  <p class="note">以上为常用按键，游戏内按 H 或点击「操作说明」可查看完整列表。</p>
+
+  <h2>技术实现</h2>
+  <ul class="tech">
+    ${g.tech.map((t) => `<li>${t}</li>`).join('')}
+  </ul>
+
+  <div class="actions">
+    ${onlineBtn}
+    <a class="btn btn-code" href="${g.repo}" target="_blank" rel="noopener">查看源码</a>
+  </div>
+
+  ${g.online ? `<p class="note">${g.onlineNote}</p>` : ''}
+  ${!g.online ? `<div class="cmdbox">${g.cmd}</div><p class="note">${g.onlineNote}</p>` : ''}
+
+  <footer>
+    代码 <a href="https://github.com/1441662404/ai-arcade/blob/main/LICENSE" target="_blank" rel="noopener">MIT 开源</a>
+    · <a href="https://github.com/1441662404/ai-arcade" target="_blank" rel="noopener">GitHub 仓库</a>
+    · 素材授权说明见 README
+  </footer>
+`;
+</script>
+</body>
+</html>
