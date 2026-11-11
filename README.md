@@ -33,6 +33,8 @@ Node.js + Three.js + WebSocket 权威服务器 · 浏览器直接开打 · 无�
 
 ### ✈ 云端之刺 · Sky Dogfight
 
+[独立仓库](https://github.com/1441662404/sky-dogfight)
+
 ![云端之刺](docs/screenshots/sky-dogfight.png)
 
 **空战 · 团队对抗 · 2–16 人**
@@ -60,6 +62,8 @@ cd Nbike && npm install && npm start
 ---
 
 ### 💩 便便英雄 · Poop Hero
+
+[独立仓库](https://github.com/1441662404/poop-hero)
 
 ![便便英雄](docs/screenshots/poop-hero.png)
 
@@ -90,6 +94,8 @@ cd 山路传说 && npm install && npm start
 ---
 
 ### ⚽ 足球盛宴 · Violent Soccer
+
+[独立仓库](https://github.com/1441662404/violent-soccer)
 
 ![足球盛宴](docs/screenshots/soccer.png)
 
