@@ -1,0 +1,66 @@
+[
+  {
+    "name": "README.md",
+    "path": "2.0/CarbonFibre/README.md",
+    "sha": "1bbbc53889f49fe274d0bd561422e2a1ea24ac36",
+    "size": 874,
+    "url": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/contents/2.0/CarbonFibre/README.md?ref=main",
+    "html_url": "https://github.com/KhronosGroupArchives/glTF-Sample-Models/blob/main/2.0/CarbonFibre/README.md",
+    "git_url": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/git/blobs/1bbbc53889f49fe274d0bd561422e2a1ea24ac36",
+    "download_url": "https://raw.githubusercontent.com/KhronosGroupArchives/glTF-Sample-Models/main/2.0/CarbonFibre/README.md",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/contents/2.0/CarbonFibre/README.md?ref=main",
+      "git": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/git/blobs/1bbbc53889f49fe274d0bd561422e2a1ea24ac36",
+      "html": "https://github.com/KhronosGroupArchives/glTF-Sample-Models/blob/main/2.0/CarbonFibre/README.md"
+    }
+  },
+  {
+    "name": "glTF-Binary",
+    "path": "2.0/CarbonFibre/glTF-Binary",
+    "sha": "b1c91e256a7bf65c92de46b94ced71bee578ffb8",
+    "size": 0,
+    "url": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/contents/2.0/CarbonFibre/glTF-Binary?ref=main",
+    "html_url": "https://github.com/KhronosGroupArchives/glTF-Sample-Models/tree/main/2.0/CarbonFibre/glTF-Binary",
+    "git_url": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/git/trees/b1c91e256a7bf65c92de46b94ced71bee578ffb8",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/contents/2.0/CarbonFibre/glTF-Binary?ref=main",
+      "git": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/git/trees/b1c91e256a7bf65c92de46b94ced71bee578ffb8",
+      "html": "https://github.com/KhronosGroupArchives/glTF-Sample-Models/tree/main/2.0/CarbonFibre/glTF-Binary"
+    }
+  },
+  {
+    "name": "glTF",
+    "path": "2.0/CarbonFibre/glTF",
+    "sha": "177faf43fe71861f1b8d9c624821707f34c36e8c",
+    "size": 0,
+    "url": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/contents/2.0/CarbonFibre/glTF?ref=main",
+    "html_url": "https://github.com/KhronosGroupArchives/glTF-Sample-Models/tree/main/2.0/CarbonFibre/glTF",
+    "git_url": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/git/trees/177faf43fe71861f1b8d9c624821707f34c36e8c",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/contents/2.0/CarbonFibre/glTF?ref=main",
+      "git": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/git/trees/177faf43fe71861f1b8d9c624821707f34c36e8c",
+      "html": "https://github.com/KhronosGroupArchives/glTF-Sample-Models/tree/main/2.0/CarbonFibre/glTF"
+    }
+  },
+  {
+    "name": "screenshot",
+    "path": "2.0/CarbonFibre/screenshot",
+    "sha": "eafd30a0215c238d503c4194a62cc71a7eb3e853",
+    "size": 0,
+    "url": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/contents/2.0/CarbonFibre/screenshot?ref=main",
+    "html_url": "https://github.com/KhronosGroupArchives/glTF-Sample-Models/tree/main/2.0/CarbonFibre/screenshot",
+    "git_url": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/git/trees/eafd30a0215c238d503c4194a62cc71a7eb3e853",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/contents/2.0/CarbonFibre/screenshot?ref=main",
+      "git": "https://api.github.com/repos/KhronosGroupArchives/glTF-Sample-Models/git/trees/eafd30a0215c238d503c4194a62cc71a7eb3e853",
+      "html": "https://github.com/KhronosGroupArchives/glTF-Sample-Models/tree/main/2.0/CarbonFibre/screenshot"
+    }
+  }
+]

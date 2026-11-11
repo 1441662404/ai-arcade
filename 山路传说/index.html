@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>山路傳說 — 霧見山下坡</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0e14'/%3E%3Ctext x='16' y='23' font-size='20' font-family='sans-serif' font-weight='700' fill='%23ff6a2a' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="css/style.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/addons/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="gl"></canvas>
+
+  <!-- HUD -->
+  <div id="hud"></div>
+
+  <!-- 讀取畫面 -->
+  <div id="loading" class="screen show">
+    <div class="load-wrap">
+      <div class="logo-sm">山路傳說 <span>山路傳說</span></div>
+      <div class="bar"><i id="load-bar"></i></div>
+      <div class="load-text" id="load-text">正在鋪設霧見山柏油…</div>
+    </div>
+  </div>
+
+  <!-- 主選單 -->
+  <div id="menu" class="screen">
+    <div class="menu-bg"></div>
+    <div class="menu-inner">
+      <div class="title-block">
+        <div class="kanji">山路傳說</div>
+        <div class="title-main">山路傳說</div>
+        <div class="title-sub">AKINA DOWNHILL · NIGHT BATTLE</div>
+      </div>
+      <nav class="menu-list">
+        <button class="mbtn" data-act="solo"><b>單人計時</b><span>TIME ATTACK</span></button>
+        <button class="mbtn" data-act="multi"><b>連線對戰</b><span>ONLINE BATTLE</span></button>
+        <button class="mbtn" data-act="garage"><b>車庫</b><span>GARAGE</span></button>
+        <button class="mbtn" data-act="help"><b>操作說明</b><span>CONTROLS</span></button>
+        <button class="mbtn" data-act="settings"><b>設定</b><span>SETTINGS</span></button>
+      </nav>
+      <div class="menu-foot">
+        <span id="menu-version">v1.0 · 霧見山下坡 5.1KM</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 車庫 -->
+  <div id="garage" class="screen">
+    <div class="panel">
+      <h2>車庫 <small>GARAGE</small></h2>
+      <div class="garage-body">
+        <div class="car-list" id="car-list"></div>
+        <div class="car-detail">
+          <div class="car-name" id="gd-name">FR-86</div>
+          <div class="car-team" id="gd-team">夜風</div>
+          <div class="stats" id="gd-stats"></div>
+          <div class="car-desc" id="gd-desc"></div>
+        </div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn ghost" data-act="back">返回</button>
+        <button class="btn primary" data-act="confirm-car">確定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 連線大廳 -->
+  <div id="lobby" class="screen">
+    <div class="panel">
+      <h2>連線大廳 <small>ONLINE</small></h2>
+      <div class="lobby-body">
+        <div class="lobby-left">
+          <label class="fld">車手名稱
+            <input id="in-name" maxlength="10" value="霧見山車手" />
+          </label>
+          <label class="fld">房間名稱
+            <input id="in-room" maxlength="14" value="霧見山夜戰" />
+          </label>
+          <div class="lobby-btns">
+            <button class="btn primary" data-act="create-room">建立房間</button>
+            <button class="btn ghost" data-act="refresh-rooms">重新整理</button>
+          </div>
+          <div class="net-status" id="net-status">未連線</div>
+        </div>
+        <div class="lobby-right">
+          <div class="room-list-title">房間列表</div>
+          <div class="room-list" id="room-list"><div class="empty">尚無房間</div></div>
+          <div class="room-detail" id="room-detail"></div>
+        </div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn ghost" data-act="back">返回</button>
+        <button class="btn primary" data-act="ready" id="btn-ready" style="display:none">準備</button>
+        <button class="btn primary" data-act="start-race" id="btn-start" style="display:none">開始比賽</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 暫停 -->
+  <div id="pause" class="screen">
+    <div class="panel small">
+      <h2>暫停 <small>PAUSE</small></h2>
+      <div class="panel-actions col">
+        <button class="btn primary" data-act="resume">繼續</button>
+        <button class="btn ghost" data-act="restart">重新開始</button>
+        <button class="btn ghost" data-act="quit">回到主選單</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結算 -->
+  <div id="results" class="screen">
+    <div class="panel small">
+      <h2 id="res-title">完成 <small>FINISH</small></h2>
+      <div class="res-grid" id="res-grid"></div>
+      <div class="panel-actions">
+        <button class="btn ghost" data-act="quit">主選單</button>
+        <button class="btn primary" data-act="restart">再跑一次</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 說明 -->
+  <div id="help" class="screen">
+    <div class="panel">
+      <h2>操作說明 <small>CONTROLS</small></h2>
+      <div class="help-grid">
+        <div><kbd>W</kbd><kbd>↑</kbd><span>油門</span></div>
+        <div><kbd>S</kbd><kbd>↓</kbd><span>煞車／倒車</span></div>
+        <div><kbd>A</kbd><kbd>D</kbd><span>轉向</span></div>
+        <div><kbd>空白</kbd><span>手煞車（甩尾）</span></div>
+        <div><kbd>C</kbd><span>切換視角</span></div>
+        <div><kbd>R</kbd><span>回到賽道</span></div>
+        <div><kbd>M</kbd><span>切換 BGM</span></div>
+        <div><kbd>N</kbd><span>下一首</span></div>
+        <div><kbd>ESC</kbd><span>暫停</span></div>
+        <div><kbd>F</kbd><span>全螢幕</span></div>
+      </div>
+      <p class="tips">要訣：入彎前重踩煞車把重量壓到前輪，方向盤一轉立刻補油門，車尾就會滑出去；<br />反打方向盤控制角度 —— 車頭會自動跟著速度方向走，所以反打一定救得回來。油門踩著別放，漂移就不會斷。<br />想從牆邊退出來？停住後繼續按 S 就會掛入 R 檔倒車。</p>
+      <div class="panel-actions"><button class="btn primary" data-act="back">了解</button></div>
+    </div>
+  </div>
+
+  <!-- 設定 -->
+  <div id="settings" class="screen">
+    <div class="panel">
+      <h2>設定 <small>SETTINGS</small></h2>
+      <div class="set-row"><span>畫質</span>
+        <div class="seg" id="set-quality">
+          <button data-v="high">高</button><button data-v="mid">中</button><button data-v="low">低</button>
+        </div>
+      </div>
+      <div class="set-row"><span>泛光</span><div class="seg" id="set-bloom"><button data-v="1">開</button><button data-v="0">關</button></div></div>
+      <div class="set-row"><span>音樂音量</span><input type="range" id="set-music" min="0" max="100" value="70" /></div>
+      <div class="set-row"><span>引擎音量</span><input type="range" id="set-sfx" min="0" max="100" value="80" /></div>
+      <div class="set-row"><span>靈敏度</span><input type="range" id="set-sens" min="50" max="150" value="100" /></div>
+      <div class="panel-actions"><button class="btn primary" data-act="back">關閉</button></div>
+    </div>
+  </div>
+
+  <div id="fps" class="fps"></div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

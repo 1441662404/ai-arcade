@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>便便英雄 3D · 下水道大乱斗（联机对战）</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' font-size='48'%3E%F0%9F%92%A9%3C/text%3E%3C/svg%3E" />
+<style>
+  :root{
+    --gold:#ffd34d; --gold-d:#f0a92c; --red:#e0453a;
+    --hp:#7ddc6b; --hp-mid:#f7c948; --hp-low:#ff5a4d;
+    --poop:#c99a55; --poop-d:#8b5a2b;
+    --ink:#f4efe6;
+    --shadow:0 6px 26px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.06) inset;
+    --glow-gold:0 0 14px rgba(255,211,77,.5);
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+    --numfont:"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:#0d0b07;font-family:var(--font);color:var(--ink);
+    -webkit-user-select:none;user-select:none;}
+  #stage{position:fixed;inset:0}
+  #game{display:block;width:100%;height:100%}
+
+  /* ===== 通用：透明无边框面板（不用实心色块边框，只用渐变+投影+细亮线） ===== */
+  .glass{
+    background:linear-gradient(160deg, rgba(28,22,14,.46), rgba(12,9,5,.30));
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    backdrop-filter:blur(9px) saturate(1.15);
+    position:relative;
+  }
+  .glass::before{  /* 顶部一道细高光，替代实心边框 */
+    content:'';position:absolute;left:8%;right:8%;top:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);
+    border-radius:1px;
+  }
+  .glass::after{   /* 底部渐隐描边 */
+    content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),transparent 30%,transparent 70%,rgba(0,0,0,.28));
+  }
+
+  #splats{position:fixed;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+  .splat{position:absolute;background-size:100% 100%;background-repeat:no-repeat;opacity:0;transition:opacity .3s ease-out}
+  #messTint{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:6;
+    background:radial-gradient(circle at 50% 50%, rgba(120,80,40,.1) 0%, rgba(70,45,20,.8) 100%);transition:opacity .12s linear}
+  #dmgFlash{position:absolute;inset:0;background:radial-gradient(circle,transparent 42%,rgba(200,40,30,.62) 100%);opacity:0;z-index:4;pointer-events:none}
+  #speedfx{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:7;transition:opacity .18s;
+    background:radial-gradient(circle at 50% 50%,rgba(255,255,255,0) 38%,rgba(255,236,200,.16) 100%)}
+  #speedfx::after{content:'';position:absolute;inset:-25%;
+    background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(255,255,255,.16) 0deg .55deg,transparent .55deg 5.5deg);
+    -webkit-mask-image:radial-gradient(circle at 50% 50%,transparent 24%,#000 78%);
+    mask-image:radial-gradient(circle at 50% 50%,transparent 24%,#000 78%);
+    animation:speedSpin 9s linear infinite}
+  @keyframes speedSpin{to{transform:rotate(360deg)}}
+
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+
+  /* ============ 准星：4 段分离式 + 中心点 + 动态命中标记 ============ */
+  #cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:34px;height:34px;transition:opacity .2s}
+  #cross i{position:absolute;background:#fff;box-shadow:0 0 3px rgba(0,0,0,.95), 0 0 1px rgba(0,0,0,1);
+    opacity:.94;border-radius:1px}
+  #cross .h{width:7px;height:2px;top:16px}
+  #cross .v{width:2px;height:7px;left:16px}
+  #cross .l{left:0}#cross .r{right:0}
+  #cross .t{top:0}#cross .b{bottom:0}
+  #cross .dot{width:2px;height:2px;left:16px;top:16px;background:var(--gold);box-shadow:0 0 4px rgba(255,211,77,.9)}
+  #hitmark{position:absolute;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%) scale(.55);
+    opacity:0;transition:opacity .07s, transform .09s cubic-bezier(.2,1.6,.4,1)}
+  #hitmark.on{opacity:1;transform:translate(-50%,-50%) scale(1.06)}
+  #hitmark.lethal i{background:#ff4d4d;box-shadow:0 0 9px rgba(255,60,60,.95)}
+  #hitmark i{position:absolute;left:50%;top:50%;width:11px;height:2.5px;background:#fff;border-radius:2px;
+    box-shadow:0 0 5px rgba(255,175,40,.95)}
+  #hitmark i:nth-child(1){transform:translate(-152%,-392%) rotate(45deg)}
+  #hitmark i:nth-child(2){transform:translate(52%,-392%) rotate(-45deg)}
+  #hitmark i:nth-child(3){transform:translate(-152%,292%) rotate(-45deg)}
+  #hitmark i:nth-child(4){transform:translate(52%,292%) rotate(45deg)}
+
+  /* ============ 左下：生命 + 备屎量（细长条 + 数字，无硬边框） ============ */
+  #vitals{position:absolute;left:28px;bottom:30px;width:300px;padding:13px 16px 12px}
+  #vTop{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
+  #pName{font-size:14px;letter-spacing:.5px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.9)}
+  #pPing{font-size:10px;opacity:.5;font-family:var(--numfont)}
+  #hpWrap{display:flex;align-items:center;gap:9px}
+  #hpBar{position:relative;flex:1;height:12px;border-radius:2px;background:rgba(0,0,0,.55);
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.8);overflow:hidden}
+  #hpFill{height:100%;width:100%;border-radius:2px;
+    background:linear-gradient(90deg,#4cbb3e,#a4e878);transition:width .13s linear, background .3s;
+    box-shadow:0 0 9px rgba(120,220,110,.5)}
+  #hpFill.mid{background:linear-gradient(90deg,#d9a52a,#ffd96b);box-shadow:0 0 9px rgba(255,200,80,.55)}
+  #hpFill.low{background:linear-gradient(90deg,#b8332a,#ff6a5c);box-shadow:0 0 11px rgba(255,80,70,.65)}
+  #hpNum{font-family:var(--numfont);font-size:17px;font-weight:700;min-width:56px;text-align:right;
+    letter-spacing:-.5px;text-shadow:0 1px 4px rgba(0,0,0,.9)}
+  #hpNum small{font-size:11px;opacity:.5;font-weight:400}
+  #hpBar .ghost{position:absolute;top:0;right:0;height:100%;background:rgba(255,90,80,.45);
+    transition:width .45s cubic-bezier(.2,.8,.3,1)}
+
+  /* 备屎量：更细，作为"弹药"视觉 */
+  #poopRow{display:flex;align-items:center;gap:9px;margin-top:9px}
+  #poopRow .plabel{font-size:10px;opacity:.62;letter-spacing:1.5px;white-space:nowrap;
+    font-family:var(--numfont)}
+  #poopBar{flex:1;height:7px;border-radius:2px;background:rgba(0,0,0,.55);overflow:hidden;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.8)}
+  #poopFill{height:100%;width:100%;border-radius:2px;
+    background:linear-gradient(90deg,#7a4f22,#e0b071);transition:width .09s linear}
+  #poopFill.low{background:linear-gradient(90deg,#8c2f10,#ff8a3c);animation:poopPulse .6s ease-in-out infinite alternate}
+  @keyframes poopPulse{from{filter:brightness(.8)}to{filter:brightness(1.5)}}
+  #poopBar.dry{animation:dryShake .3s linear}
+  @keyframes dryShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+  #poopNum{font-family:var(--numfont);font-size:12px;min-width:30px;text-align:right;opacity:.8}
+
+  /* 血条上的分段刻度（主流射击游戏那种细刻度） */
+  #hpTicks{position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 1px),rgba(0,0,0,.55) calc(10% - 1px),rgba(0,0,0,.55) 10%)}
+
+  /* ============ 右下：技能（环形冷却 + 无边框） ============ */
+  #skills{position:absolute;right:28px;bottom:30px;display:flex;align-items:flex-end;gap:14px}
+  .skill{width:66px;height:66px;border-radius:50%;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;position:relative;
+    background:radial-gradient(circle at 50% 38%, rgba(48,38,24,.55), rgba(10,8,4,.42));
+    box-shadow:var(--shadow);backdrop-filter:blur(8px)}
+  .skill .ring{position:absolute;inset:-3px;border-radius:50%;pointer-events:none}
+  .skill .ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .skill .ring circle{fill:none;stroke-width:2.5;stroke-linecap:round}
+  .skill .ring .bg{stroke:rgba(255,255,255,.1)}
+  .skill .ring .fg{stroke:var(--gold);stroke-dasharray:176;stroke-dashoffset:0;transition:stroke-dashoffset .1s linear}
+  .skill .ico{font-size:24px;line-height:1;filter:drop-shadow(0 2px 5px rgba(0,0,0,.8))}
+  .skill .key{font-size:9px;opacity:.66;margin-top:3px;letter-spacing:.4px;text-align:center;line-height:1.2}
+  .skill .key b{display:block;font-size:10px;opacity:.95;color:var(--gold);font-family:var(--numfont)}
+  .skill.ready .ring .fg{stroke:#9ff08a;filter:drop-shadow(0 0 4px rgba(150,240,130,.7))}
+  .skill.ready .ico{filter:drop-shadow(0 0 8px rgba(255,211,77,.55))}
+  .skill.noammo{opacity:.42;filter:grayscale(.7)}
+  .skill.cooling .ico{opacity:.5}
+  .skill .flash{position:absolute;inset:-3px;border-radius:50%;pointer-events:none;
+    box-shadow:0 0 0 0 rgba(255,211,77,.7);opacity:0}
+  .skill.did .flash{animation:skillPop .45s ease-out}
+  @keyframes skillPop{0%{opacity:1;box-shadow:0 0 0 0 rgba(255,211,77,.75)}100%{opacity:0;box-shadow:0 0 0 16px rgba(255,211,77,0)}}
+
+  /* ============ 右上：排行榜（记录人头数） ============ */
+  #lb{position:absolute;right:28px;top:22px;width:268px;padding:11px 12px 8px}
+  #lbHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 3px}
+  #lbHead .t{font-size:11px;letter-spacing:2px;opacity:.72;font-family:var(--numfont)}
+  #lbHead .mode{font-size:10px;color:var(--gold);opacity:.9;font-family:var(--numfont)}
+  #lbCols,#lbRows{font-family:var(--numfont)}
+  #lbCols{display:grid;grid-template-columns:24px 1fr 30px 30px 38px;gap:2px;
+    font-size:9px;opacity:.42;letter-spacing:1px;padding:0 3px 5px;text-align:center}
+  #lbCols span:nth-child(2){text-align:left}
+  .lb-row{display:grid;grid-template-columns:24px 1fr 30px 30px 38px;gap:2px;align-items:center;
+    font-size:12px;padding:4px 3px;border-radius:5px;text-align:center;
+    transition:background .2s, transform .25s cubic-bezier(.2,1.4,.4,1)}
+  .lb-row.me{background:linear-gradient(90deg,rgba(255,211,77,.18),rgba(255,211,77,.04));
+    box-shadow:inset 2px 0 0 var(--gold)}
+  .lb-row.off{opacity:.45}
+  .lb-rank{font-weight:700;font-size:11px;opacity:.75}
+  .lb-rank.gold{color:#ffd34d;text-shadow:0 0 8px rgba(255,211,77,.9);opacity:1}
+  .lb-rank.silver{color:#dfe6ec;text-shadow:0 0 7px rgba(220,230,240,.7);opacity:1}
+  .lb-rank.bronze{color:#e0995a;text-shadow:0 0 7px rgba(224,153,90,.7);opacity:1}
+  .lb-name{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-family:var(--font);font-size:12px;display:flex;align-items:center;gap:4px}
+  .lb-name em{font-style:normal}
+  .lb-bot{font-size:8px;padding:1px 3px;border-radius:3px;background:rgba(120,180,255,.2);
+    color:#9ec8ff;font-family:var(--numfont);letter-spacing:.5px}
+  .lb-you{font-size:8px;padding:1px 3px;border-radius:3px;background:rgba(255,211,77,.25);
+    color:var(--gold);font-family:var(--numfont)}
+  .lb-k{color:var(--gold);font-weight:700}
+  .lb-d{opacity:.55}
+  .lb-kd{opacity:.72;font-size:11px}
+  #lbFoot{font-size:9px;opacity:.4;text-align:center;padding:5px 0 2px;letter-spacing:1px;
+    border-top:1px solid rgba(255,255,255,.07);margin-top:5px}
+
+  /* ============ 顶部：比分 / 时间（居中细条） ============ */
+  #topbar{position:absolute;left:50%;top:18px;transform:translateX(-50%);display:flex;
+    align-items:stretch;gap:0;padding:0;overflow:hidden}
+  #topbar .cell{padding:8px 20px;text-align:center;position:relative}
+  #topbar .cell+.cell::before{content:'';position:absolute;left:0;top:22%;height:56%;width:1px;
+    background:linear-gradient(180deg,transparent,rgba(255,255,255,.18),transparent)}
+  #topbar .k{font-size:9px;letter-spacing:2px;opacity:.55;font-family:var(--numfont)}
+  #topbar .v{font-size:20px;font-weight:800;font-family:var(--numfont);letter-spacing:-.5px;
+    margin-top:1px;color:var(--gold);text-shadow:0 2px 10px rgba(0,0,0,.7)}
+  #topbar .v.plain{color:var(--ink)}
+
+  /* ============ 击杀播报（右侧，无外框） ============ */
+  #feed{position:absolute;right:28px;top:auto;bottom:auto;width:330px;text-align:right;
+    display:flex;flex-direction:column;gap:5px;top:calc(22px + 232px)}
+  .feedline{padding:5px 10px;font-size:12.5px;border-radius:7px;position:relative;
+    background:linear-gradient(90deg,transparent,rgba(18,13,8,.62));
+    box-shadow:inset -2px 0 0 rgba(255,211,77,.55), 0 2px 10px rgba(0,0,0,.4);
+    backdrop-filter:blur(5px);
+    animation:feedIn .2s cubic-bezier(.2,1.3,.4,1);transition:opacity .4s}
+  @keyframes feedIn{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+
+  /* ============ CF 风格击杀卡片（底部中央弹出） ============ */
+  #killcard{position:absolute;left:50%;top:auto;bottom:158px;transform:translate(-50%,0) scale(.7);opacity:0;
+    display:flex;align-items:center;gap:14px;padding:10px 22px 10px 14px;border-radius:14px;
+    background:linear-gradient(100deg,rgba(180,30,20,.42),rgba(30,10,6,.5));
+    box-shadow:0 10px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.14);
+    backdrop-filter:blur(10px);transition:opacity .16s, transform .22s cubic-bezier(.2,1.5,.4,1)}
+  #killcard.on{opacity:1;transform:translate(-50%,-16px) scale(1)}
+  #killcard .kc-icon{width:52px;height:52px;position:relative;flex:none}
+  #killcard .kc-icon svg{width:100%;height:100%;display:block;
+    filter:drop-shadow(0 0 10px rgba(255,190,60,.65))}
+  #killcard .kc-x{position:absolute;right:-12px;bottom:-4px;font-size:15px;font-weight:900;
+    color:var(--gold);font-family:var(--numfont);text-shadow:0 0 10px rgba(255,211,77,.95)}
+  #killcard .kc-main{display:flex;flex-direction:column}
+  #killcard .kc-name{font-size:20px;font-weight:800;letter-spacing:1px;line-height:1.15;
+    text-shadow:0 2px 8px rgba(0,0,0,.9)}
+  #killcard .kc-streak{font-size:13px;font-weight:800;color:#ff6a52;letter-spacing:2px;
+    text-shadow:0 0 12px rgba(255,90,60,.75)}
+  #killcard .kc-streak span{font-size:9px;opacity:.7;letter-spacing:3px;margin-left:7px;
+    font-family:var(--numfont);color:var(--ink)}
+  #killcard .kc-streak.kc-single{color:var(--gold);text-shadow:0 0 12px rgba(255,211,77,.7)}
+
+  /* ============ 受击方向指示 ============ */
+  #hitdirs{position:absolute;left:50%;top:50%;width:0;height:0}
+  .hitdir{position:absolute;left:0;top:0;width:0;height:0;opacity:0;transition:opacity .35s;
+    border-left:13px solid transparent;border-right:13px solid transparent;
+    border-bottom:16px solid rgba(255,70,55,.9);
+    filter:drop-shadow(0 0 7px rgba(255,70,55,.8))}
+
+  /* ============ 中央提示 ============ */
+  #center{position:absolute;left:50%;top:30%;transform:translateX(-50%);text-align:center;font-size:29px;
+    font-weight:800;letter-spacing:2px;text-shadow:0 4px 18px rgba(0,0,0,.85);opacity:0;transition:opacity .2s}
+  #center small{display:block;font-size:13px;font-weight:400;opacity:.8;margin-top:7px;letter-spacing:1px}
+  #hint{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);font-size:12px;padding:6px 15px;
+    border-radius:20px;display:none;background:rgba(20,15,9,.6);backdrop-filter:blur(6px)}
+
+  /* ============ 死亡遮罩 ============ */
+  #dead{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;
+    background:radial-gradient(circle,rgba(60,20,8,.35),rgba(20,6,4,.6))}
+  #dead .t{font-size:50px;font-weight:900;color:#ffd34d;text-shadow:0 6px 26px rgba(0,0,0,.85);letter-spacing:3px}
+  #dead .s{font-size:15px;margin-top:10px;opacity:.9}
+  #dead .cd{margin-top:16px;font-family:var(--numfont);font-size:13px;opacity:.7}
+
+  /* ============ Tab 大记分板 ============ */
+  #score{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:560px;padding:18px 22px;
+    display:none}
+  #score h3{font-size:12px;letter-spacing:3px;opacity:.6;margin-bottom:12px;font-weight:600;
+    font-family:var(--numfont)}
+  #score .srow{display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 6px;border-radius:6px}
+  #score .srow+.srow{border-top:1px solid rgba(255,255,255,.055)}
+  #score .srow.me{background:linear-gradient(90deg,rgba(255,211,77,.16),transparent);
+    box-shadow:inset 2px 0 0 var(--gold)}
+  #score .sr-i{width:22px;opacity:.5;font-family:var(--numfont);font-size:11px}
+  #score .sr-n{flex:1}
+  #score .sr-s{font-family:var(--numfont);opacity:.85}
+
+  /* ============ 机器人开关（右上排行榜下方，服务器同步） ============ */
+  #bots{position:absolute;right:28px;top:auto;width:268px;padding:10px 12px;display:flex;
+    align-items:center;gap:10px;pointer-events:auto}
+  #bots .bt{font-size:11px;letter-spacing:1px;opacity:.8;flex:1;font-family:var(--numfont)}
+  #bots .bt em{display:block;font-style:normal;font-size:9px;opacity:.5;letter-spacing:.5px;margin-top:2px}
+  .sw{position:relative;width:38px;height:20px;border-radius:11px;flex:none;cursor:pointer;
+    background:rgba(255,255,255,.12);transition:background .2s;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.6)}
+  .sw::after{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;
+    background:#ddd;transition:transform .2s cubic-bezier(.2,1.4,.4,1), background .2s;
+    box-shadow:0 1px 4px rgba(0,0,0,.6)}
+  .sw.on{background:linear-gradient(90deg,#d9a52a,#ffd34d)}
+  .sw.on::after{transform:translateX(18px);background:#fff}
+  #botCount{width:52px;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;outline:none;
+    background:linear-gradient(90deg,var(--gold) 0%,var(--gold) 50%,rgba(255,255,255,.16) 50%,rgba(255,255,255,.16) 100%);
+    cursor:pointer}
+  #botCount::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+    background:#fff;box-shadow:0 0 7px rgba(255,211,77,.9);cursor:pointer}
+  #botNum{font-family:var(--numfont);font-size:14px;font-weight:700;color:var(--gold);min-width:22px;
+    text-align:right}
+  #botNum[data-on="0"]{color:#8a8a8a}
+
+  /* ============ 音乐播放器（左下角上方，纯客户端拉流） ============ */
+  #music{position:absolute;left:28px;bottom:auto;top:22px;width:232px;padding:9px 11px;
+    display:flex;align-items:center;gap:9px;pointer-events:auto}
+  #music .mico{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;
+    justify-content:center;font-size:15px;background:radial-gradient(circle at 50% 35%,rgba(255,211,77,.28),rgba(0,0,0,.35));
+    box-shadow:0 0 12px rgba(255,211,77,.22)}
+  #music.spin .mico{animation:mspin 3.6s linear infinite}
+  @keyframes mspin{to{transform:rotate(360deg)}}
+  #music .minfo{flex:1;min-width:0}
+  #music .mt{font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.92}
+  #music .ms{font-size:9px;opacity:.45;font-family:var(--numfont);letter-spacing:.5px;margin-top:1px}
+  #music .mbtns{display:flex;align-items:center;gap:3px}
+  #music button{background:none;border:none;color:var(--ink);font-size:13px;cursor:pointer;padding:3px 4px;
+    border-radius:5px;opacity:.75;font-family:var(--font);line-height:1}
+  #music button:hover{opacity:1;background:rgba(255,255,255,.09)}
+  #music .mvol{width:46px;-webkit-appearance:none;appearance:none;height:3px;border-radius:2px;
+    background:rgba(255,255,255,.2);outline:none;cursor:pointer}
+  #music .mvol::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;
+    background:var(--gold);box-shadow:0 0 6px rgba(255,211,77,.8);cursor:pointer}
+
+  /* ============ 开场过场：红人物 + POOP HERO ============ */
+  #splash{position:fixed;inset:0;z-index:50;background:#000;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:18px;transition:opacity .8s ease}
+  #splash.out{opacity:0;pointer-events:none}
+  #splashHero{height:min(54vh,470px);max-width:88vw;object-fit:contain;
+    filter:drop-shadow(0 14px 44px rgba(224,32,21,.35));
+    animation:splashIn .8s cubic-bezier(.2,1.3,.4,1);user-select:none;pointer-events:none}
+  @keyframes splashIn{from{opacity:0;transform:scale(1.18)}to{opacity:1;transform:none}}
+  #splash .stitle{font-size:64px;font-weight:900;letter-spacing:10px;line-height:1;
+    font-family:"Impact","Arial Black",var(--font);
+    background:linear-gradient(180deg,#ff6a4e 0%,#e02015 45%,#8e0d06 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 24px rgba(255,60,30,.7)) drop-shadow(0 4px 0 rgba(0,0,0,.9));
+    transform:skewX(-6deg);animation:titleIn .9s .15s cubic-bezier(.2,1.3,.4,1) both}
+  @keyframes titleIn{from{opacity:0;transform:skewX(-6deg) translateY(26px)}to{opacity:1;transform:skewX(-6deg)}}
+
+  /* ============ 名字界面：极简 ============ */
+  #menu{position:fixed;inset:0;z-index:30;
+    background:radial-gradient(circle at 50% 30%,#3a2916 0%,#100b06 74%)}
+  #menuCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer}
+  #menu .mtitle{position:absolute;left:50%;top:7%;transform:translateX(-50%) skewX(-6deg);text-align:center;
+    font-size:56px;font-weight:900;letter-spacing:8px;line-height:1;font-family:"Impact","Arial Black",var(--font);
+    background:linear-gradient(180deg,#ff6a4e 0%,#e02015 48%,#8e0d06 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 22px rgba(255,60,30,.6)) drop-shadow(0 3px 0 rgba(0,0,0,.9))}
+  #menu .mtitle span{display:block;font-size:13px;letter-spacing:7px;margin-top:10px;
+    -webkit-text-fill-color:#ff8d7a;font-family:var(--numfont);filter:none}
+  #menu .mhint{position:absolute;left:50%;bottom:172px;transform:translateX(-50%);
+    font-size:13px;letter-spacing:3px;color:#ffd34d;opacity:.9;animation:hintPulse 1.6s ease-in-out infinite}
+  @keyframes hintPulse{0%,100%{opacity:.55}50%{opacity:1}}
+  #menu .mbottom{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);display:flex;gap:10px}
+  #nick{width:290px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.16);border-radius:10px;color:#fff;
+    padding:12px 16px;font-size:15px;font-family:var(--font);outline:none;transition:border-color .2s;text-align:center}
+  #nick:focus{border-color:rgba(224,32,21,.65)}
+  #play{background:linear-gradient(180deg,#ff5a42,#c81408);color:#fff;font-weight:800;border:none;
+    border-radius:10px;padding:12px 24px;font-size:15px;cursor:pointer;font-family:var(--font);
+    box-shadow:0 5px 20px rgba(224,32,21,.45);letter-spacing:2px}
+  #play:hover{filter:brightness(1.12)}
+  #status{position:absolute;left:50%;bottom:56px;transform:translateX(-50%);font-size:12px;opacity:.55}
+  #setbtn{position:absolute;right:26px;bottom:26px;background:rgba(0,0,0,.45);color:#ffd34d;border:1px solid rgba(255,211,77,.35);
+    border-radius:10px;padding:9px 16px;font-size:13px;cursor:pointer;font-family:var(--font);letter-spacing:1px;transition:.2s}
+  #setbtn:hover{background:rgba(224,32,21,.25);border-color:rgba(224,32,21,.6)}
+
+  /* ============ 设置面板 ============ */
+  #settings{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);z-index:60;width:360px;
+    padding:22px 24px;border-radius:16px;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;
+    background:linear-gradient(160deg,rgba(32,24,15,.92),rgba(14,10,6,.94));
+    box-shadow:0 20px 60px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.1)}
+  #settings.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+  #settings .shead{font-size:15px;letter-spacing:3px;color:var(--gold);margin-bottom:18px;font-family:var(--numfont)}
+  #settings .srow{display:flex;justify-content:space-between;align-items:center;font-size:14px;margin-bottom:10px}
+  #settings .srow b{color:#ffd34d;font-family:var(--numfont);font-size:15px}
+  #sensRange{width:100%;accent-color:#e02015;cursor:pointer}
+  #settings .slabels{display:flex;justify-content:space-between;font-size:11px;opacity:.5;margin:2px 0 18px}
+  #setClose{width:100%;background:linear-gradient(180deg,#ff5a42,#c81408);color:#fff;font-weight:800;border:none;
+    border-radius:10px;padding:11px;font-size:14px;cursor:pointer;font-family:var(--font);letter-spacing:2px}
+  #setClose:hover{filter:brightness(1.12)}
+
+  /* ============ 聊天 ============ */
+  #chatlog{position:absolute;left:28px;bottom:176px;width:360px;display:flex;flex-direction:column;gap:4px;pointer-events:none}
+  .chatline{font-size:13px;padding:4px 10px;border-radius:7px;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+    background:linear-gradient(90deg,rgba(14,10,6,.55),transparent);opacity:0;transform:translateX(-14px);
+    transition:opacity .3s, transform .3s;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+  .chatline.on{opacity:1;transform:none}
+  .chatline b{color:#ffd34d}
+  .chatline.mine b{color:#9ff08a}
+  #chatbar{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);width:460px;display:none;align-items:center;
+    gap:9px;padding:9px 14px;border-radius:11px;background:rgba(14,10,6,.72);backdrop-filter:blur(10px);
+    box-shadow:0 8px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.12)}
+  #chatbar .cico{font-size:16px}
+  #chatInput{flex:1;background:none;border:none;outline:none;color:#fff;font-size:14px;font-family:var(--font)}
+  #chatInput::placeholder{color:rgba(255,255,255,.35)}
+  #chatbar .ckey{font-size:10px;opacity:.4;font-family:var(--numfont);white-space:nowrap}
+
+  /* ============ 中键圆盘快捷指令 ============ */
+  #radial{position:absolute;left:-999px;top:-999px;width:0;height:0;pointer-events:none;
+    display:flex;align-items:center;justify-content:center}
+  #radial.on{pointer-events:auto}
+  #radial::before{content:'';position:absolute;left:-116px;top:-116px;width:232px;height:232px;border-radius:50%;
+    background:radial-gradient(circle,rgba(20,14,8,.05) 30%,rgba(20,14,8,.66) 72%);
+    box-shadow:0 0 40px rgba(0,0,0,.5);backdrop-filter:blur(6px);
+    animation:radIn .16s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes radIn{from{transform:scale(.55);opacity:0}to{transform:none;opacity:1}}
+  #radial .rhub{position:relative;font-size:10px;opacity:.5;letter-spacing:2px;font-family:var(--numfont)}
+  #radial .ritem{position:absolute;left:0;top:0;width:132px;margin-left:-66px;display:flex;align-items:center;gap:6px;
+    justify-content:center;font-size:12.5px;padding:7px 10px;border-radius:22px;white-space:nowrap;
+    background:rgba(24,17,10,.85);box-shadow:0 3px 14px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.1);
+    transition:transform .12s, background .12s, box-shadow .12s;user-select:none}
+  #radial .ritem .rico{font-size:15px}
+  #radial .ritem.sel{background:linear-gradient(90deg,#c81408,#ff5a42);transform:scale(1.12);
+    box-shadow:0 0 22px rgba(255,80,50,.7)}
+</style>
+</head>
+<body>
+<!-- 开场过场：黑底 + 抠好的红色人物 + POOP HERO 渐隐 -->
+<div id="splash">
+  <img id="splashHero" src="img/splash_hero.png" alt="" draggable="false" />
+  <div class="stitle">POOP HERO</div>
+</div>
+
+<div id="stage">
+  <canvas id="game"></canvas>
+</div>
+<div id="dmgFlash"></div>
+<div id="splats"></div>
+<div id="messTint"></div>
+<div id="speedfx"></div>
+
+<div id="hud">
+  <!-- 准星 -->
+  <div id="cross">
+    <i class="h l"></i><i class="h r"></i>
+    <i class="v t"></i><i class="v b"></i>
+    <i class="dot"></i>
+  </div>
+  <div id="hitmark"><i></i><i></i><i></i><i></i></div>
+  <div id="hitdirs"></div>
+
+  <!-- 顶部：本局进度 -->
+  <div id="topbar" class="glass">
+    <div class="cell"><div class="k">击杀</div><div class="v" id="bKills">0</div></div>
+    <div class="cell"><div class="k">阵亡</div><div class="v plain" id="bDeaths">0</div></div>
+    <div class="cell"><div class="k">剩余</div><div class="v plain" id="bTime">--</div></div>
+  </div>
+
+  <!-- 左上：音乐播放器 -->
+  <div id="music" class="glass">
+    <div class="mico">🎵</div>
+    <div class="minfo">
+      <div class="mt" id="mTitle">未播放</div>
+      <div class="ms" id="mState">免费音源 · 网页端拉流</div>
+    </div>
+    <div class="mbtns">
+      <button id="mPrev" title="上一首">⏮</button>
+      <button id="mPlay" title="播放 / 暂停">▶</button>
+      <button id="mNext" title="下一首">⏭</button>
+      <input class="mvol" id="mVol" type="range" min="0" max="100" value="45" title="音量" />
+    </div>
+  </div>
+
+  <!-- 右上：排行榜 -->
+  <div id="lb" class="glass">
+    <div id="lbHead"><span class="t">战 场 排 行</span><span class="mode">击杀榜</span></div>
+    <div id="lbCols"><span>#</span><span>名字</span><span>杀</span><span>死</span><span>KD</span></div>
+    <div id="lbRows"></div>
+    <div id="lbFoot">Tab 查看详细战绩</div>
+  </div>
+
+  <!-- 机器人开关（服务器同步） -->
+  <div id="bots" class="glass">
+    <div class="sw" id="botSw"></div>
+    <div class="bt">机器人<em>服务器同步 · 全场生效</em></div>
+    <input id="botCount" type="range" min="0" max="8" value="4" />
+    <div id="botNum" data-on="0">关</div>
+  </div>
+
+  <!-- 击杀播报 -->
+  <div id="feed"></div>
+
+  <!-- CF 风格击杀卡片 -->
+  <div id="killcard"></div>
+
+  <!-- 左下：生命 + 备屎量 -->
+  <div id="vitals" class="glass">
+    <div id="vTop"><span id="pName">便便英雄</span><span id="pPing"></span></div>
+    <div id="hpWrap">
+      <div id="hpBar"><div id="hpFill"></div><div id="hpTicks"></div></div>
+      <div id="hpNum">100<small>/100</small></div>
+    </div>
+    <div id="poopRow">
+      <span class="plabel">备屎量</span>
+      <div id="poopBar"><div id="poopFill"></div></div>
+      <span id="poopNum">100</span>
+    </div>
+  </div>
+
+  <!-- 右下：技能 -->
+  <div id="skills">
+    <div class="skill" id="skG">
+      <div class="ring"><svg viewBox="0 0 60 60"><circle class="bg" cx="30" cy="30" r="28"/><circle class="fg" cx="30" cy="30" r="28"/></svg></div>
+      <div class="flash"></div>
+      <div class="ico">💣</div><div class="key"><b>Q</b>屎榴弹</div>
+    </div>
+    <div class="skill" id="skR">
+      <div class="ring"><svg viewBox="0 0 60 60"><circle class="bg" cx="30" cy="30" r="28"/><circle class="fg" cx="30" cy="30" r="28"/></svg></div>
+      <div class="flash"></div>
+      <div class="ico">🌀</div><div class="key"><b>E</b>滚粪球</div>
+    </div>
+    <div class="skill" id="skF">
+      <div class="ring"><svg viewBox="0 0 60 60"><circle class="bg" cx="30" cy="30" r="28"/><circle class="fg" cx="30" cy="30" r="28"/></svg></div>
+      <div class="flash"></div>
+      <div class="ico">🚀</div><div class="key"><b>空格×2</b>喷射跳</div>
+    </div>
+  </div>
+
+  <div id="center"></div>
+  <div id="hint">点击画面继续 · ESC 释放鼠标</div>
+  <div id="dead" style="display:none">
+    <div class="t">你被糊死了</div>
+    <div class="s" id="deadS"></div>
+    <div class="cd" id="deadCd"></div>
+  </div>
+  <div id="score" class="glass"><h3>详 细 战 绩（按住 Tab）</h3><div id="scoreRows"></div></div>
+
+  <!-- 聊天记录（左侧，自动淡出） -->
+  <div id="chatlog"></div>
+
+  <!-- 聊天输入（回车开关） -->
+  <div id="chatbar">
+    <span class="cico">💬</span>
+    <input id="chatInput" maxlength="60" placeholder="说点什么… 回车发送" />
+    <span class="ckey">回车发送 · Esc 取消</span>
+  </div>
+
+  <!-- 中键圆盘快捷指令 -->
+  <div id="radial"></div>
+</div>
+
+<div id="menu">
+  <!-- 极简名字界面：人物模型站中间 + 底部名字输入，双击模型进入 -->
+  <canvas id="menuCanvas"></canvas>
+  <div class="mtitle">POOP HERO<span>便便英雄 · 下水道大乱斗</span></div>
+  <div class="mhint">双击人物模型，进入战场</div>
+  <div class="mbottom">
+    <input id="nick" maxlength="12" placeholder="输入你的名字（默认随机）" />
+    <button id="play">进入战场 ▸</button>
+  </div>
+  <div id="status">本地联机 · 屎已备好，等你入场</div>
+  <button id="setbtn" title="设置">⚙ 设置</button>
+</div>
+
+<!-- 设置面板：鼠标灵敏度等 -->
+<div id="settings" class="glass">
+  <div class="shead">⚙ 设 置</div>
+  <div class="srow">
+    <span>鼠标灵敏度</span>
+    <b id="sensVal">1.00</b>
+  </div>
+  <input id="sensRange" type="range" min="0.2" max="3.0" step="0.05" value="1.0" />
+  <div class="slabels"><span>慢</span><span>快</span></div>
+  <button id="setClose">完成</button>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

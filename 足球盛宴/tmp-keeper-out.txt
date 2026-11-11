@@ -1,0 +1,7 @@
+
+═══ ① 新动作是否载入 + loop 配置 ═══
+  {"gkHold":{"dur":3.33,"clamp":false},"gkIdle":{"dur":4.63,"clamp":false},"gkScoop":{"dur":2.6,"clamp":true},"header":{"dur":2.37,"clamp":true}}
+
+═══ ② 一次性动作会不会重播（回绕次数应为 0）═══
+  gkHold    clip=3.33s  maxTime=2.01s  回绕=0  ✓ 不重复
+  gkScoop   clip=2.6s  maxTime=2.6s  回绕=0  ✓ 不重复

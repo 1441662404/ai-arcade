@@ -1,0 +1,112 @@
+/**
+ * 游戏注册表 —— 门户唯一的数据源
+ * run: 'node' 由网关拉起子进程（PORT 由网关注入）；'static' 由网关内置静态服务托管
+ */
+module.exports = [
+  {
+    slug: 'sky-dogfight',
+    name: '云端之刺',
+    en: 'Sky Dogfight',
+    tag: '空战 · 团队对抗',
+    desc: '驾驶战机在云海之上缠斗，也可换乘舰船下海作战。权威服务器逐帧同步飞行物理，滚转、失速、机炮与导弹都按真机手感调校。',
+    players: '2 - 16 人',
+    keys: 'W/S 油门俯仰 · A/D 滚转 · 鼠标 瞄准 · 左键 开火',
+    color: '#4db6ff',
+    color2: '#0e4d8c',
+    icon: '✈',
+    run: 'node',
+    src: 'Cloud Thorn/sky-dogfight',
+    include: ['package.json', 'server.js', 'flight-physics.js', 'naval-physics.js', 'bots.js', 'public']
+  },
+  {
+    slug: 'nbike',
+    name: '山道飞骑',
+    en: 'Nbike Alpine',
+    tag: '自行车 · 竞速',
+    desc: '写实风环法式山道速降。摇车、卡位、跟车吸尾流，坡道地形与空气阻力全部由服务端物理推演，冲线那一刻才见分晓。',
+    players: '2 - 12 人',
+    keys: 'W 踩踏 · A/D 转向 · Shift 摇车 · Space 刹车',
+    color: '#7ee787',
+    color2: '#14532d',
+    icon: '🚴',
+    run: 'node',
+    src: 'Nbike',
+    include: ['package.json', 'server.js', 'public']
+  },
+  {
+    slug: 'poop-hero',
+    name: '便便英雄',
+    en: 'Poop Hero',
+    tag: '竞技场 · 乱斗',
+    desc: '3D 竞技场混战，跳跃、冲刺、投掷与技能连招。服务端 60Hz 逻辑帧负责命中判定，翻滚闪避的每一帧都算数。',
+    players: '2 - 12 人',
+    keys: 'WASD 移动 · 空格 跳跃 · 左键 投掷 · Shift 冲刺',
+    color: '#c084fc',
+    color2: '#4c1d95',
+    icon: '💩',
+    run: 'node',
+    src: '便便英雄',
+    include: ['package.json', 'server.js', 'public']
+  },
+  {
+    slug: 'mountain-pass',
+    name: '山路传说 · 雾见山夜战',
+    en: 'Mountain Pass Legend',
+    tag: '漂移 · 夜战',
+    desc: '雾见山下坡夜战。零依赖自研 WebSocket 同步，轮胎打滑与惯性漂移都在服务器演算，五连发夹弯见真章。',
+    players: '2 - 10 人',
+    keys: 'W/S 油门刹车 · A/D 转向 · Space 手刹漂移',
+    color: '#ff6a2a',
+    color2: '#7c2d12',
+    icon: '🏁',
+    run: 'node',
+    src: '山路传说',
+    include: ['package.json', 'server.js', 'index.html', 'js', 'css', 'assets', 'audio', 'vendor']
+  },
+  {
+    slug: 'soccer',
+    name: '足球盛宴',
+    en: 'Violent Soccer',
+    tag: '足球 · 对抗',
+    desc: '3D 第三人称暴力足球，铲抢、冲撞、倒钩样样来。30Hz 权威主循环驱动的球体物理，支持观战与语音。',
+    players: '2 - 12 人',
+    keys: 'WASD 移动 · 空格 跳跃 · 左键 踢球 · Shift 冲刺',
+    color: '#38bdf8',
+    color2: '#075985',
+    icon: '⚽',
+    run: 'node',
+    src: '足球盛宴',
+    include: ['package.json', 'server.js', 'anim-pick.js', 'bw-guard.js', 'gk-reach.json', 'dribble-idle.json', 'spin-ball.json', 'rootmotion.json', 'glb', '救护车包', 'public']
+  },
+  {
+    slug: 'sfh',
+    name: '战火英雄',
+    en: 'Strike Force Heroes',
+    tag: '横版射击 · 组队',
+    desc: '经典 2D 横版射击复刻。四大兵种（突击/狙击/医疗/坦克）、数十种枪械、三张多层地图。服务端权威 60Hz 推演，最多 12 人同房，支持 5 人组队开黑。',
+    players: '2 - 12 人',
+    keys: 'A/D 移动 · W 跳跃 · S 蹲/举盾 · 鼠标 瞄准 · 左键 射击 · R 换弹 · Q 换枪 · E 技能',
+    color: '#ff8a3d',
+    color2: '#7c2d12',
+    icon: '🪖',
+    run: 'node',
+    src: '战火英雄',
+    include: ['package.json', 'server.js', 'index.html', 'css', 'js', 'shared']
+  },
+  {
+    slug: 'fmcar',
+    name: '山路 · 第一人称座舱',
+    en: 'FM Car Cockpit',
+    tag: '驾驶 · 单机',
+    desc: '第一人称座舱视角的山路驾驶体验，仪表、方向盘与后视镜实时联动。单机练习场，适合上线前先熟悉手感。',
+    players: '单机',
+    keys: 'W/S 油门刹车 · A/D 转向 · 鼠标 观察',
+    color: '#f472b6',
+    color2: '#831843',
+    icon: '🚗',
+    run: 'static',
+    src: 'FMCAR/public',
+    include: ['index.html', 'three.module.js'],
+    entry: 'index.html'
+  }
+];

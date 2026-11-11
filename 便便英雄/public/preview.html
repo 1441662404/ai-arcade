@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><title>模型预览</title><link rel="icon" href="data:,">
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#bfe3ff}</style>
+</head>
+<body>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
+import { createPoopHero, createRollBallMesh } from './src/model.js';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xbfe3ff);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x889966, 1.0));
+const sun = new THREE.DirectionalLight(0xfff2d0, 1.6);
+sun.position.set(4, 8, 5);
+sun.castShadow = true;
+scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60),
+  new THREE.MeshStandardMaterial({ color: 0x77aa55 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const POSES = ['idle', 'aim', 'bent', 'fly', 'down'];
+const heroes = POSES.map((pose, i) => {
+  const h = createPoopHero(0x8b5a2b);
+  h.root.position.set((i - 2) * 1.75, 0, 0);
+  h.root.rotation.y = 0.5;
+  scene.add(h.root);
+  h.setLabel(pose);
+  return { h, pose };
+});
+
+// 打滚球技能的粪球（技能投射物，不是人物变形）
+const ball = createRollBallMesh();
+ball.position.set(6.2, 0.82, -1.6);
+scene.add(ball);
+ball.userData.spin.rotation.y = 0.6;
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 100);
+let t = 0, last = performance.now();
+renderer.setAnimationLoop(() => {
+  const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000);
+  last = now; t += dt;
+  for (const { h, pose } of heroes) h.update(dt, { pose });
+  if (!window.__hold) {
+    camera.position.set(Math.sin(t * 0.25) * 6.5, 2.6, Math.cos(t * 0.25) * 6.5);
+    camera.lookAt(0, 1.0, 0);
+  }
+  renderer.render(scene, camera);
+});
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight, false);
+});
+window.__snap = () => { camera.position.set(0, 2.2, 8.2); camera.lookAt(0, 0.95, 0); };
+window.__only = (i) => {
+  heroes.forEach((o, j) => { o.h.root.visible = (i == null || i === j); });
+  ball.visible = (i == null);
+};
+window.__cam = (x, y, z, tx = 0, ty = 1.0, tz = 0) => {
+  camera.position.set(x, y, z);
+  camera.lookAt(tx, ty, tz);
+  renderer.render(scene, camera);
+  window.__hold = true;
+};
+</script>
+</body>
+</html>

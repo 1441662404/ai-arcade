@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a1a2a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a1622'/%3E%3Cpath d='M16 5l3 12 6 4-9-1-9 1 6-4z' fill='%234db6ff'/%3E%3C/svg%3E">
+<title>Sky Dogfight · 苍穹空战</title>
+<link rel="stylesheet" href="/style.css">
+<!-- Socket.IO 客户端（服务端自动托管） -->
+<script src="/socket.io/socket.io.js"></script>
+<!-- 与服务端共享的飞行物理（UMD → window.FlightPhysics） -->
+<script src="/flight-physics.js"></script>
+<script src="/naval-physics.js"></script>
+</head>
+<body>
+
+<!-- 3D 主场景 -->
+<canvas id="scene"></canvas>
+<!-- 透明 HUD 层（无任何黑底矩形） -->
+<canvas id="hud"></canvas>
+
+<!-- ===== 界面层（全部透明背景） ===== -->
+<div id="ui">
+
+  <!-- 顶部：对局信息条 -->
+  <div id="topbar">
+    <div class="tside t0">
+      <span class="tname"><i class="dot"></i>蓝队</span>
+      <span class="tscore" id="score0">0</span>
+    </div>
+    <div class="tcenter">
+      <div class="row1"><span class="obj">目标 <b id="target">1600</b></span><span class="clock" id="clock">15:00</span></div>
+      <div class="progress"><i id="objFill"></i></div>
+    </div>
+    <div class="tside t1">
+      <span class="tscore" id="score1">0</span>
+      <span class="tname">红队<i class="dot"></i></span>
+    </div>
+  </div>
+
+  <!-- 击杀/事件信息 -->
+  <div id="killfeed"></div>
+
+  <!-- 屏幕中央提示 -->
+  <div id="centermsg"></div>
+
+  <!-- 排行榜 -->
+  <div id="board"></div>
+
+  <!-- 移动端触控 -->
+  <div id="touch" class="hidden">
+    <div id="stick"><div id="stickKnob"></div></div>
+    <div id="tbtns">
+      <button class="tb" data-act="fire">机炮</button>
+      <button class="tb" data-act="msl">导弹</button>
+      <button class="tb" data-act="flr">干扰</button>
+      <button class="tb" data-act="gear">起落架</button>
+      <button class="tb" data-act="view">视角</button>
+      <button class="tb" data-act="brake">刹车</button>
+    </div>
+    <div id="thrWrap"><div id="thrFill"></div><span>油门</span></div>
+  </div>
+
+  <!-- 帮助（键位提示） -->
+  <div id="help">
+    <!-- 飞机操作（默认显示） -->
+    <div id="helpAir">
+    <div class="hrow"><span class="kbd">W</span><span class="kbd">S</span><em>油门</em></div>
+    <div class="hrow"><span class="kbd">A</span><span class="kbd">D</span><em>滚转</em><span class="kbd">Q</span><span class="kbd">E</span><em>方向舵</em></div>
+    <div class="hrow"><span class="kbd wide">鼠标</span><em>俯仰 / 偏航</em></div>
+    <div class="hrow"><span class="kbd wide">空格</span><em>机炮</em><span class="kbd wide">回车</span><em>导弹</em></div>
+    <div class="hrow"><span class="kbd">F</span><em>干扰弹</em><span class="kbd">G</span><em>起落架</em><span class="kbd">J</span><em>航母弹射</em><span class="kbd">X</span><em>减速板</em><span class="kbd wide">Shift</span><em>刹车</em></div>
+    <div class="hrow"><span class="kbd">C</span><em>视角</em><span class="kbd wide">Tab</span><em>排行榜</em><span class="kbd">M</span><em>静音</em><span class="kbd">V</span><em>无线电</em></div>
+    <div class="hrow"><span class="kbd">`</span><em>HUD 完整 / 简洁 / 关闭</em><span class="kbd">[</span><span class="kbd">]</span><em>大小</em><span class="kbd">P</span><em>画质</em><span class="kbd">H</span><em>帮助</em></div>
+    </div>
+    <!-- 轰炸机操作（选轰炸机出战 / 上舰换机后切换过来） -->
+    <div id="helpBomber" class="hidden">
+      <div class="hrow"><span class="kbd">W</span><span class="kbd">S</span><em>油门</em><span class="kbd">A</span><span class="kbd">D</span><em>滚转</em><span class="kbd">Q</span><span class="kbd">E</span><em>方向舵</em></div>
+      <div class="hrow"><span class="kbd wide">鼠标</span><em>俯仰 / 偏航</em><span class="kbd wide">空格</span><em>机鼻机枪</em></div>
+      <div class="hrow"><span class="kbd">B</span><em>投航弹</em><span class="kbd">F</span><em>投鱼雷</em><span class="kbd wide">Shift</span><em>机轮刹车</em></div>
+      <div class="hrow"><span class="kbd">G</span><em>起落架</em><span class="kbd">X</span><em>减速板</em><span class="kbd">J</span><em>航母弹射</em><span class="kbd">C</span><em>视角</em></div>
+      <div class="hrow"><span class="kbd">`</span><em>HUD 档位</em><span class="kbd wide">Tab</span><em>排行榜</em><span class="kbd">M</span><em>静音</em><span class="kbd">H</span><em>帮助</em></div>
+    </div>
+    <!-- 战舰操作（上舰时切换过来） -->
+    <div id="helpShip" class="hidden">
+      <div class="hrow"><span class="kbd">W</span><span class="kbd">S</span><em>油门档位</em><span class="kbd">A</span><span class="kbd">D</span><em>左右舵</em></div>
+      <div class="hrow"><span class="kbd wide">鼠标</span><em>主炮瞄准</em><span class="kbd wide">左键/空格</span><em>齐射</em></div>
+      <div class="hrow"><span class="kbd">F</span><em>鱼雷</em><span class="kbd">R</span><em>损管</em><span class="kbd">C</span><em>视角</em></div>
+      <div class="hrow"><span class="kbd">`</span><em>HUD 档位</em><span class="kbd wide">Tab</span><em>排行榜</em><span class="kbd">H</span><em>帮助</em></div>
+    </div>
+  </div>
+  <div id="helpHint" class="hidden">H 操作说明</div>
+</div>
+
+<!-- ===== 加入 ===== -->
+<div id="menu">
+  <div class="menuWrap">
+    <div class="brand">
+      <div class="brandLine"></div>
+      <h1>SKY DOGFIGHT</h1>
+      <div class="brandSub">苍穹空战</div>
+      <div class="brandLine"></div>
+    </div>
+    <p class="sub">32 km × 32 km 海空一体战场 · 战列舰 / 巡洋舰 / 驱逐舰 · 战斗机 / 轰炸机 · 60 Hz 权威联机</p>
+
+    <div class="joinRow">
+      <div class="field">
+        <label for="nameInput">呼号</label>
+        <input id="nameInput" maxlength="14" placeholder="留空随机分配" autocomplete="off" spellcheck="false">
+      </div>
+      <button id="joinBtn">加入战斗</button>
+    </div>
+    <div class="vehSel">
+      <div class="vsTitle">选择兵种</div>
+      <div class="vsGrid">
+        <button class="vcard sel" data-v="plane">
+          <span class="vIcon">✈</span><span class="vName">战斗机</span>
+          <span class="vDesc">狗斗 · 机炮 · 红外弹</span>
+        </button>
+        <button class="vcard" data-v="plane:bomber">
+          <span class="vIcon">☣</span><span class="vName">轰炸机</span>
+          <span class="vDesc">鱼雷 · 航弹 · 反舰</span>
+        </button>
+        <button class="vcard" data-v="ship:bb">
+          <span class="vIcon">▤</span><span class="vName">战列舰</span>
+          <span class="vDesc">重甲巨炮 · 齐射</span>
+        </button>
+        <button class="vcard" data-v="ship:ca">
+          <span class="vIcon">▥</span><span class="vName">巡洋舰</span>
+          <span class="vDesc">速射 · 防空 · 鱼雷</span>
+        </button>
+        <button class="vcard" data-v="ship:dd">
+          <span class="vIcon">▱</span><span class="vName">驱逐舰</span>
+          <span class="vDesc">高速 · 鱼雷猎杀</span>
+        </button>
+      </div>
+    </div>
+    <div class="qRow">
+      <label for="qualitySel">画质</label>
+      <select id="qualitySel" autocomplete="off">
+        <option value="auto">自动 · 按帧率调节</option>
+        <option value="low">流畅 · 低配优先</option>
+        <option value="medium">均衡</option>
+        <option value="high">高清 · 实时阴影</option>
+        <option value="ultra">极致 · 4×MSAA</option>
+      </select>
+      <span id="qHint">游戏内按 P 切换</span>
+    </div>
+    <div id="menuTip">点击后鼠标将被锁定用于飞行控制</div>
+
+    <div class="ctlGrid">
+      <div><span class="kbd">W</span><span class="kbd">S</span><em>油门</em></div>
+      <div><span class="kbd">鼠标</span><em>俯仰 / 偏航</em></div>
+      <div><span class="kbd">A</span><span class="kbd">D</span><em>滚转</em></div>
+      <div><span class="kbd">空格</span><em>机炮</em></div>
+      <div><span class="kbd">回车 / 右键</span><em>导弹</em></div>
+      <div><span class="kbd">F</span><em>干扰弹</em></div>
+      <div><span class="kbd">G</span><em>起落架</em></div>
+      <div><span class="kbd">J</span><em>航母弹射</em></div>
+      <div><span class="kbd">X</span><em>减速板</em></div>
+      <div><span class="kbd">C</span><em>切换座舱 / 追尾</em></div>
+      <div><span class="kbd">V</span><em>无线电</em></div>
+      <div><span class="kbd">`</span><em>HUD 三档</em></div>
+    </div>
+
+    <div class="legend">
+      <span class="t0"><i class="dot"></i>蓝队</span>
+      <span class="t1"><i class="dot"></i>红队</span>
+      <span class="ver">v1.5 · 权威服务器 · 60 Hz</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 结算 ===== -->
+<div id="endcard" class="hidden">
+  <div class="menuWrap end">
+    <div class="endHead">
+      <div class="endTag">MATCH RESULT</div>
+      <h2 id="endTitle">比赛结束</h2>
+    </div>
+    <div id="endBody"></div>
+    <div id="endBar"><i></i></div>
+    <div id="endTip"></div>
+  </div>
+</div>
+
+<script type="module" src="/game.js"></script>
+</body>
+</html>

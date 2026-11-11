@@ -1,0 +1,17 @@
+{
+  "name": "nbike-alpine-stage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nbike - 写实风山道自行车竞速（环法风格）· 权威服务器 + Socket.IO 实时同台竞技",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "three": "^0.160.1"
+  },
+  "license": "MIT"
+}

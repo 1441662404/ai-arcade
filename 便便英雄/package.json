@@ -1,0 +1,16 @@
+{
+  "name": "poop-hero-arena",
+  "version": "1.0.0",
+  "private": true,
+  "description": "便便英雄 3D 联机对战 - 本地服务器版",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "three": "^0.160.0",
+    "ws": "^8.22.0"
+  },
+  "license": "MIT"
+}

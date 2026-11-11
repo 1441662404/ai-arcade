@@ -1,0 +1,90 @@
+# ==========================================================
+#  AI Arcade - 开源仓库忽略规则
+# ==========================================================
+
+# ---------- 依赖 ----------
+node_modules/
+bower_components/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ---------- 不参与开源的项目（素材授权 / IP 原因） ----------
+战狗/
+GTA0.6/
+玩家大战僵尸/
+VC-Horizon/
+
+# ---------- 门户构建产物（用 node build-games.js 重建） ----------
+portal/games/
+
+# ---------- 足球盛宴：开发用动作包与参考视频（体积大 / 版权风险） ----------
+足球盛宴/足球动作包/
+足球盛宴/守门员包/
+足球盛宴/跳舞包/
+足球盛宴/展示包/
+足球盛宴/模特包/
+足球盛宴/战舞包/
+足球盛宴/video/
+足球盛宴/refvid/
+足球盛宴/refvid2/
+足球盛宴/devtools/
+足球盛宴/blender_scripts/
+足球盛宴/*.mjs
+足球盛宴/*.png
+足球盛宴/_offset.json
+足球盛宴/_offset.js
+足球盛宴/.rename.json
+
+# ---------- 足球盛宴：真实球员关联素材（肖像/声音权利） ----------
+足球盛宴/audio/
+足球盛宴/glb/striker-dance.glb
+足球盛宴/striker-tpose.fbx
+足球盛宴/striker-motion.fbx
+足球盛宴/striker-preview.html
+
+# ---------- 敏感凭证（严禁入库） ----------
+portal/admin.json
+*.pem
+*.key
+*.pfx
+.env
+.env.*
+!.env.example
+
+# ---------- 内部交接文档与部署脚本（含服务器地址） ----------
+*/服务器接口文档.md
+足球盛宴/deploy.sh
+
+# ---------- AI 工作区元数据与记忆日志 ----------
+.workbuddy/
+*.genie
+
+# ---------- 备份与临时产物 ----------
+_backup/
+_shots/
+*.bak
+*.bak-*
+*.tar.gz
+*.log
+*.tmp
+=0.45
+attachment_*.bin
+
+# ---------- 开发截图与调试工具（体积大） ----------
+Cloud Thorn/sky-dogfight/shots/
+山路传说/_tools/
+Nbike/screenshots/
+VC-Horizon/out/
+
+# ---------- 编辑器 / 系统文件 ----------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- 可执行与二进制工具 ----------
+*.exe
+cloudflared.exe

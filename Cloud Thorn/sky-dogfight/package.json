@@ -1,0 +1,19 @@
+{
+  "name": "sky-dogfight",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sky Dogfight — 浏览器 3D 联机空战（Three.js 客户端 + Socket.IO 权威服务端 + 共享飞行物理）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check flight-physics.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  },
+  "license": "MIT"
+}

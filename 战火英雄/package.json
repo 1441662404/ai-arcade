@@ -1,0 +1,12 @@
+{
+  "name": "strike-force-heroes-web",
+  "version": "1.0.0",
+  "description": "战火英雄 — 2D 横版联机射击（服务端权威 · 最多 5 人组队）",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "license": "MIT"
+}

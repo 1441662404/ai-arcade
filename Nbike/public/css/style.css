@@ -1,0 +1,489 @@
+/* =============================================================================
+ * Nbike · 山道自行车竞速 · HUD 样式
+ * 设计取向：暗色玻璃面板 + 高对比数字，保证在明亮雪山背景下仍清晰可读
+ * ========================================================================== */
+:root {
+  /* ★ 更通透的玻璃面板：降低底色不透明度、减弱模糊，
+   *   让背后的 3D 场景透出来（原来 0.76/0.86 + blur14 偏实，像实心板）。 */
+  --bg-panel: rgba(12, 16, 22, 0.42);
+  --bg-panel-2: rgba(16, 21, 29, 0.52);
+  --bd: rgba(255, 255, 255, 0.16);
+  --bd-hi: rgba(255, 255, 255, 0.26);
+  --tx: #eef3f8;
+  --tx-dim: #93a2b4;
+  --tx-mute: #6b7a8c;
+  --red: #ff3b30;
+  --orange: #ff9f0a;
+  --yellow: #ffd60a;
+  --green: #30d158;
+  --blue: #0a84ff;
+  --gold: #ffd200;
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.42);
+  --r: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: #0a0d12; color: var(--tx);
+  font-family: "Inter", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+#gl { display: block; width: 100%; height: 100%; }
+
+/* ============================ 速度感：真·径向模糊 ============================
+ * ★ 之前用 CSS repeating-conic-gradient 画"速度线"，用户反馈"只有几根线"，
+ *   不像动态模糊 —— 那确实只是装饰线条，不是模糊。
+ *   现在改成：每帧把 WebGL 画面画到这张 2D canvas 上，沿**径向**多次采样叠加，
+ *   得到真正的"从中心向外拉丝"的模糊（赛车游戏标准做法）。
+ *   越靠边缘采样偏移越大 → 中心保持清晰，边缘强烈拉丝，速度感很强且不糊视线。
+ *   由 JS 控制 opacity（速度低时为 0，完全不做无用功）。 */
+.speed-fx {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  opacity: 0; transition: opacity .12s linear;
+  width: 100%; height: 100%;
+}
+
+kbd {
+  display: inline-block; min-width: 20px; padding: 1px 5px;
+  border: 1px solid var(--bd-hi); border-bottom-width: 2px; border-radius: 4px;
+  background: rgba(255, 255, 255, 0.09); font: inherit; font-size: 11px;
+  text-align: center; color: var(--tx);
+}
+
+/* ============================ 载入 / 错误 ============================ */
+#loading {
+  position: fixed; inset: 0; z-index: 90; display: flex;
+  align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 38%, #17202c 0%, #0a0d12 72%);
+  transition: opacity .5s ease;
+}
+#loading.done { opacity: 0; pointer-events: none; }
+.ld-inner { width: min(430px, 84vw); text-align: center; }
+.ld-logo {
+  font-size: 54px; font-weight: 900; letter-spacing: 4px;
+  background: linear-gradient(100deg, #ffd200 0%, #ff9f0a 48%, #ff3b30 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.ld-sub { margin: 6px 0 26px; color: var(--tx-dim); font-size: 13px; letter-spacing: 1.6px; }
+.ld-bar { height: 4px; border-radius: 3px; background: rgba(255, 255, 255, .10); overflow: hidden; }
+.ld-bar i { display: block; height: 100%; width: 0%; border-radius: 3px;
+  background: linear-gradient(90deg, #ffd200, #ff9f0a); transition: width .22s ease; }
+.ld-msg { margin-top: 12px; font-size: 12.5px; color: var(--tx-dim); }
+.ld-stats { margin-top: 8px; font-size: 11px; color: var(--tx-mute); line-height: 1.7; }
+
+/* ★ 全局兜底：任何带 hidden 属性的元素都必须真正隐藏。
+ *   CSS 的 display 声明（如 display:flex）优先级高于 HTML hidden 属性的
+ *   默认 display:none，会让 hidden 完全失效 —— 曾导致 #fatal 从页面打开起
+ *   就一直盖住全屏（表现为"启动失败"黑屏），而 DOM 里 hidden 明明是 true。
+ *   .results / #fatal / .center-msg 等都在用 hidden 控制显隐，统一在这里兜住。 */
+[hidden] { display: none !important; }
+
+#fatal { position: fixed; inset: 0; z-index: 120; display: flex; align-items: center;
+  justify-content: center; background: #0a0d12; padding: 24px; }
+.ft-inner { max-width: 720px; border: 1px solid #5a2020; border-radius: var(--r);
+  background: #1a1013; padding: 22px 24px; }
+.ft-inner b { color: var(--red); font-size: 15px; }
+.ft-inner pre { margin-top: 12px; font-size: 12px; color: #d8b8b8; white-space: pre-wrap;
+  word-break: break-all; max-height: 46vh; overflow: auto; }
+
+/* ============================ HUD 容器 ============================ */
+.hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+.hud > * { pointer-events: auto; }
+.panel {
+  /* ★ 统一为"纯透明框"（与变速 UI 一致）：无底色、无模糊、无边框，
+   *   只靠 text-shadow 保证文字压在亮色路面上仍可读。
+   *   —— 用户明确了不喜欢任何框线，所以这里连 border 都不留。 */
+  background: transparent; border: 0; outline: 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 1px rgba(0, 0, 0, .95);
+}
+
+/* ============================ 顶部：速度横栏 ============================
+ * 仿赛车/骑行模拟器的抬头显示：
+ *   · 速度居中放大，数字带同色辉光（读数的"重量感"来自辉光而非框）
+ *   · 一条带刻度的速度主尺（刻度让数字有"仪表"感，不是干巴巴一条进度条）
+ *   · 左右各挂两个次级数据，用细分隔线与主区隔开
+ * 整体是纯透明框（用户不喜欢框线），靠文字辉光 + 刻度建立层次。 */
+.p-speedbar {
+  position: absolute; left: 50%; top: 8px; transform: translateX(-50%);
+  display: flex; align-items: stretch; gap: 0;
+  padding: 6px 10px 7px; min-width: 560px;
+}
+.sb-side { display: flex; flex-direction: column; justify-content: center; gap: 4px;
+  min-width: 88px; padding: 0 14px; }
+.sb-right { align-items: flex-end; }
+/* 侧区与主区之间：一道极淡的竖向渐隐分隔（比实线轻盈） */
+.sb-left { border-right: 1px solid rgba(255, 255, 255, .10); }
+.sb-right { border-left: 1px solid rgba(255, 255, 255, .10); }
+.sb-cell { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; }
+.sb-cell label { font-size: 9px; color: var(--tx-mute); margin-right: auto;
+  letter-spacing: .4px; }
+.sb-right .sb-cell label { margin-right: 0; margin-left: auto; }
+.sb-cell b { font-size: 16px; font-weight: 800; color: #fff; line-height: 1;
+  font-variant-numeric: tabular-nums; letter-spacing: -.3px;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .55); }
+.sb-cell u { font-size: 8.5px; color: var(--tx-mute); text-decoration: none;
+  margin-left: 1px; }
+
+.sb-main { flex: 1; display: flex; flex-direction: column; align-items: center;
+  min-width: 230px; padding: 0 8px; }
+.sb-spd { display: flex; align-items: baseline; gap: 6px; line-height: .95; }
+/* 速度数字：按速度换辉光色（慢=白、中=绿黄、快=橙红），由 JS 设 --spd-hue 不现实，
+ * 这里用 filter/class 更省；见 .sb-spd.hot / .max */
+.sb-spd b {
+  font-size: 46px; font-weight: 900; letter-spacing: -2px;
+  color: #fff; font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .62), 0 0 26px rgba(160, 220, 255, .28);
+  transition: color .15s, text-shadow .15s;
+}
+.sb-spd.fast b { color: #eaffe0;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .6), 0 0 28px rgba(120, 255, 160, .5); }
+.sb-spd.max b { color: #fff0dc;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .6), 0 0 30px rgba(255, 170, 70, .62); }
+.sb-spd span { font-size: 11px; color: var(--tx-dim); font-weight: 600;
+  letter-spacing: .5px; }
+
+/* 主尺：一条带刻度的速度尺 */
+.sb-gauge { position: relative; width: 100%; height: 12px; margin: 4px 0 2px; }
+.sb-gauge i {
+  position: absolute; left: 0; bottom: 3px; height: 4px; width: 0%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #30d158, #ffd60a 58%, #ff3b30);
+  box-shadow: 0 0 10px rgba(255, 210, 60, .45);
+  transition: width .1s linear;
+}
+/* 刻度：用 repeating-linear-gradient 画，无需额外 DOM */
+.sb-gauge::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+  background: repeating-linear-gradient(90deg,
+    rgba(255, 255, 255, .30) 0 1px, transparent 1px 10%);
+  opacity: .75;
+}
+.sb-sub { display: flex; align-items: baseline; gap: 6px; font-size: 9.5px;
+  color: var(--tx-mute); white-space: nowrap; }
+.sb-sub b { color: var(--tx-dim); font-weight: 800; font-size: 10.5px;
+  font-variant-numeric: tabular-nums; }
+.sb-dot { opacity: .38; }
+
+/* ============================ 左侧：次级数据 ============================ */
+.p-stats { position: absolute; left: 16px; top: 92px; width: 158px; padding: 10px 12px 9px; }
+.rows { display: grid; grid-template-columns: 1fr; gap: 4px; }
+.rows .row { display: flex; align-items: baseline; gap: 4px; font-size: 11.5px; color: var(--tx-dim); }
+.rows .row b { margin-left: auto; color: var(--tx); font-weight: 600; font-size: 13px; }
+.stambar { height: 3px; margin-top: 8px; border-radius: 2px; background: rgba(255, 255, 255, .10); overflow: hidden; }
+.stambar i { display: block; height: 100%; width: 100%; background: #30d158; transition: width .2s, background .2s; }
+
+/* ============================ 右上：排行榜 ============================ */
+.p-board { position: absolute; right: 16px; top: 16px; width: 244px; padding: 12px 13px; }
+.bh { display: flex; align-items: baseline; gap: 6px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--bd); }
+.bh span { font-size: 10.5px; color: var(--tx-mute); letter-spacing: 1px; }
+.bh b { font-size: 22px; font-weight: 800; color: var(--gold); }
+.bh span:last-child { margin-left: auto; }
+.blist { margin: 7px 0; max-height: 218px; overflow: hidden; display: flex; flex-direction: column; gap: 3px; }
+.blist .bi {
+  display: flex; align-items: center; gap: 7px; font-size: 11.5px;
+  padding: 4px 7px; border-radius: 6px; background: rgba(255, 255, 255, .035);
+}
+.blist .bi.me { background: rgba(255, 210, 0, .16); box-shadow: inset 0 0 0 1px rgba(255, 210, 0, .4); }
+.blist .bi .rk { width: 17px; color: var(--tx-mute); font-weight: 700; text-align: right; }
+.blist .bi .dt { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+.blist .bi .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.blist .bi .gp { color: var(--tx-dim); font-size: 10.5px; }
+.blist .bi.fin .gp { color: var(--green); font-weight: 700; }
+
+.gaps { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.gap { border-radius: 7px; background: rgba(255, 255, 255, .045); padding: 5px 8px; }
+.gap label { display: block; font-size: 9.5px; color: var(--tx-mute); }
+.gap b { font-size: 15px; font-weight: 700; color: #fff; }
+.gap i { font-style: normal; font-size: 10px; color: var(--tx-dim); margin-left: 3px; }
+.gap.lead { grid-column: 1 / -1; }
+.gap.ahead b { color: #ff8f8a; }
+.gap.behind b { color: #7ddc9a; }
+
+.phases { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.chip { font-size: 10.5px; padding: 3px 8px; border-radius: 20px;
+  background: rgba(255, 255, 255, .07); color: var(--tx-dim); }
+.chip b { color: var(--blue); }
+#hDraft { background: rgba(48, 209, 88, .18); color: #9df0b4; }
+#hDraft b { color: var(--green); }
+#hOffroad { background: rgba(255, 59, 48, .2); color: #ffb0ab; }
+
+/* ============================ 底部：踩踏 + 传动 ============================ */
+.p-drive {
+  /* 整组居中：聊天快捷语已抬到 bottom:216，圆环顶边 ≈698，
+   * 两者不再重叠，所以可以安心居中（不再需要靠左避让）。 */
+  position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+}
+/* 圆环旁的迷你功率牌：半透明小立牌，只放功率数字 + 一根横条
+ * ★ 不能太抢眼：它是"余光可见"的辅助读数，主读数在上方横栏 */
+.p-pow {
+  /* 贴着圆环左侧（-4px 微压一点，视觉上像挂在环边上） */
+  margin-right: -2px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 64px; padding: 9px 6px 7px; border-radius: 10px;
+  background: rgba(10, 14, 20, 0.42);
+  border: 1px solid rgba(255, 255, 255, .16);
+  backdrop-filter: blur(7px) saturate(1.2);
+  -webkit-backdrop-filter: blur(7px) saturate(1.2);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .85);
+  align-self: center;
+}
+.pp-v { display: flex; align-items: baseline; gap: 1px; }
+.pp-v b { font-size: 21px; font-weight: 800; line-height: 1; color: #fff;
+  font-variant-numeric: tabular-nums; letter-spacing: -.5px; transition: color .12s; }
+.pp-v u { font-size: 9px; color: var(--tx-mute); text-decoration: none; }
+.pp-bar { width: 100%; height: 3px; margin: 5px 0 4px; border-radius: 2px;
+  background: rgba(255, 255, 255, .12); overflow: hidden; }
+.pp-bar i { display: block; height: 100%; width: 0%; border-radius: 2px;
+  background: #30d158; transition: width .09s linear, background .12s; }
+.pp-l { font-size: 9px; color: var(--tx-mute); letter-spacing: .5px; }
+/* 功率爬升时数字变暖色，余光就能感知"在爆" */
+.p-pow.hot .pp-v b { color: #ffd60a; }
+.p-pow.max .pp-v b { color: #ff9f0a; }
+
+.feet { display: flex; gap: 12px; }
+.foot {
+  position: relative; width: 176px; height: 176px;
+  /* 按下时整盘放大（由 JS 设 transform）—— 反馈不遮挡环上颜色 */
+  transition: transform .09s ease-out, filter .09s linear;
+  will-change: transform;
+}
+.foot canvas { width: 176px; height: 176px; display: block; filter: drop-shadow(0 4px 14px rgba(0, 0, 0, .5)); }
+.fmeta {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  text-align: center; pointer-events: none;
+}
+.fmeta b { display: block; font-size: 15px; font-weight: 800; color: #fff; letter-spacing: .5px; }
+.fmeta .fband { display: block; font-size: 11px; margin-top: 2px; font-weight: 700; letter-spacing: 1px; }
+.foot.hold .fmeta b { color: #fff; text-shadow: 0 0 12px currentColor; }
+.foot.bad .fmeta .fband { animation: blink .32s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+
+/* A/D 徽章已改为画在 canvas 内（见 ui.js 的峰值标记），
+ * 不再需要独立 HTML 标签 —— 底部空间不足时它会溢出视口。 */
+
+/* 传动面板：飞轮按真实齿数画圆，32T 的圆较大 → 面板与 SVG 都要给足空间
+ * ★ 用户明确要求"不要有框"：背景透明 + **边框也去掉**（连白线都不留）。
+ *   仅靠 text-shadow 保证文字压在亮色路面上仍可读。 */
+.drivetrain {
+  width: 340px; padding: 11px 13px 10px;
+  background: transparent; border: 0; outline: 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+}
+.cd-label { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--tx-mute); }
+.cd-cad b { color: var(--tx); font-weight: 700; }
+.cd-body { display: flex; align-items: center; gap: 8px; margin: 5px 0 6px; }
+.ring { width: 96px; height: 96px; flex: 0 0 auto; }
+.cassette { flex: 1; height: 76px; min-width: 0; }
+.cd-foot { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.gi { color: var(--tx-dim); }
+.gi b { font-size: 17px; color: var(--gold); font-weight: 800; }
+.gi i { font-style: normal; color: var(--tx-mute); font-size: 10px; }
+.hint { flex: 1; font-size: 10.5px; color: var(--yellow); text-align: center; min-height: 14px; }
+.keys { color: var(--tx-mute); font-size: 10px; white-space: nowrap; }
+
+/* ============================ 模型旁脚部提示 ============================
+ * ★ 只画描边，不填背景色：这块小圈会压在底部节奏环上，
+ *   一旦填充实心色就会盖住环上的黄/绿/红，"该按哪格"就看不见了。
+ *   按下的反馈交给节奏环本身放大（.foot 的 transform）。 */
+.overlay-feet { position: absolute; inset: 0; }
+.overlay-feet i {  position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px;
+  border-radius: 50%; border: 2px solid rgba(255, 255, 255, .78);
+  background: transparent;
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, .45);   /* 外描边保证亮背景下也看得见 */
+  transition: border-color .1s linear, transform .08s, opacity .1s;
+  opacity: .9;
+}
+.overlay-feet i.live { transform: scale(1.26); opacity: 1; }
+.overlay-feet i.bad { border-color: var(--red); }
+.overlay-feet i.s-left::after, .overlay-feet i.s-right::after {
+  position: absolute; left: 50%; top: -19px; transform: translateX(-50%);
+  font-size: 10px; font-weight: 800; color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .9);
+}
+.overlay-feet i.s-left::after { content: 'A'; }
+.overlay-feet i.s-right::after { content: 'D'; }
+
+/* 跟着车手浮动的功率数字：纯白数字 + 细描边，不加任何底框
+ * （用户要求"白色数字就行"；描边是为了压在亮色路面上也能看清） */
+.overlay-feet .of-pow {
+  position: absolute; transform: translate(-50%, -100%);
+  display: flex; align-items: baseline; gap: 2px;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+  pointer-events: none;
+  transition: opacity .15s;
+}
+.overlay-feet .of-pow b {
+  font-size: 20px; font-weight: 800; color: #fff; line-height: 1;
+  letter-spacing: -.5px;
+  text-shadow: 0 0 1px rgba(0, 0, 0, .95), 0 1px 3px rgba(0, 0, 0, .9),
+               0 2px 8px rgba(0, 0, 0, .65);
+}
+.overlay-feet .of-pow u {
+  font-size: 10px; font-weight: 700; color: #fff; text-decoration: none;
+  opacity: .78; text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+}
+
+/* ============================ 教练 / 中央提示 ============================ */
+/* 教练提示要排在【聊天栏之上】：聊天栏占 bottom≈216~243，
+ * 这里取 262，保证两者不叠。 */
+.coach {
+  position: absolute; left: 50%; bottom: 262px; transform: translateX(-50%);
+  padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 700;
+  background: rgba(10, 132, 255, .88); color: #fff; box-shadow: var(--shadow);
+  white-space: nowrap; transition: opacity .2s;
+}
+.coach.bad { background: rgba(255, 59, 48, .9); }
+
+.center-msg {
+  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  text-align: center; text-shadow: 0 6px 30px rgba(0, 0, 0, .85);
+}
+.center-msg b { display: block; font-size: 116px; font-weight: 900; line-height: 1;
+  color: #fff; letter-spacing: -3px; }
+.center-msg b.go { color: var(--green); font-size: 92px; letter-spacing: 3px; }
+.center-msg span { display: block; margin-top: 8px; font-size: 15px; color: #dfe7f0; letter-spacing: 2px; }
+
+.corner-warn {
+  position: absolute; left: 50%; top: 15%; transform: translateX(-50%);
+  padding: 6px 15px; border-radius: 20px; font-size: 14px; font-weight: 700;
+  background: rgba(255, 159, 10, .92); color: #1a1206; box-shadow: var(--shadow);
+}
+.corner-warn b { font-size: 19px; }
+.corner-warn.danger { background: rgba(255, 59, 48, .94); color: #fff; }
+.corner-warn span { margin-left: 6px; font-size: 11px; opacity: .82; font-weight: 600; }
+
+/* ============================ 帮助 ============================ */
+/* 帮助面板文字多、叠在亮色雪地上容易糊 → 单独给一层稍实的衬底，
+ * 其余数据面板保持高透明度（数据靠大字号+高对比，不吃背景）。 */
+.p-help { position: absolute; left: 16px; bottom: 16px; width: 250px; padding: 11px 13px;
+  background: rgba(8, 11, 16, 0.74) !important; }
+.p-help.hide { display: none; }
+.hh { font-size: 10.5px; letter-spacing: 1.4px; color: var(--tx-mute); margin-bottom: 6px; }
+.p-help ul { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.p-help li { font-size: 11px; color: var(--tx-dim); }
+.p-help li kbd { margin-right: 2px; }
+.hh-tip { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--bd);
+  font-size: 10.5px; color: var(--tx-mute); line-height: 1.6; }
+
+/* ============================ 右侧：节奏轨道（音游谱面） ============================
+ * 两条竖轨 = A（左）/ D（右）。音符从上方落下，落到判定线时按对应键最省力。
+ * ★ 视觉必须"能读谱"：滚落速度跟踏频走，所以看谱就知道该多快踩。
+ * 放在右侧中部：小地图在右下、排行榜在右上，这里正好空着。 */
+.p-rhythm {
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  width: 168px; padding: 9px 10px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  /* 拖动用：移动时关掉过渡，避免跟手发飘 */
+  touch-action: none;
+}
+/* 拖动手柄：整条标题栏都可拖，给抓手光标 */
+.rh-head { display: flex; align-items: baseline; gap: 5px; font-size: 10.5px;
+  color: var(--tx-mute); width: 100%; cursor: grab; user-select: none;
+  padding: 1px 0 2px; }
+.rh-head.dragging { cursor: grabbing; }
+.rh-grip { color: var(--tx-mute); opacity: .55; font-size: 11px; letter-spacing: -1px; }
+.rh-cad { margin-left: auto; }
+.rh-cad b { color: var(--tx-dim); font-weight: 700; font-size: 11.5px; }
+/* 锁定图标：解锁时半透明、锁定后高亮 */
+.rh-lock { font-size: 9px; margin-left: 3px; opacity: .18; transition: opacity .15s; }
+.p-rhythm.locked .rh-lock { opacity: .95; }
+.p-rhythm.locked .rh-head { cursor: default; }
+/* 拖动中/刚拖动过：轻微高亮边框外发光（无框美学下用光代替描边） */
+.p-rhythm.dragging { text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 0 14px rgba(120,200,255,.75); }
+.rh-canvas { width: 148px; height: 310px; display: block; border-radius: 8px; }
+.rh-foot { display: flex; gap: 8px; width: 100%; font-size: 10px;
+  color: var(--tx-mute); font-weight: 700; }
+.rh-k { flex: 1; text-align: center; padding: 2px 0; border-radius: 5px;
+  background: rgba(255, 255, 255, .07); transition: background .1s, color .1s; }
+.rh-k.on { background: rgba(48, 209, 88, .9); color: #06240f; }
+.rh-k.bad { background: rgba(255, 59, 48, .9); color: #fff; }
+
+/* ============================ 小地图 ============================ */
+.minimap {
+  position: absolute; right: 16px; bottom: 16px; width: 168px; height: 168px;
+  border-radius: var(--r); border: 1px solid var(--bd); background: rgba(10, 14, 20, .38);
+  box-shadow: var(--shadow); backdrop-filter: blur(6px);
+}
+
+/* ============================ 结果 ============================ */
+.results { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 9, 13, .74); backdrop-filter: blur(6px); }
+.rs-card { width: min(680px, 92vw); max-height: 88vh; overflow: auto;
+  background: var(--bg-panel-2); border: 1px solid var(--bd-hi); border-radius: 16px;
+  padding: 26px 28px; box-shadow: 0 24px 70px rgba(0, 0, 0, .6); }
+.rs-card h2 { font-size: 26px; font-weight: 900; letter-spacing: 1px;
+  background: linear-gradient(100deg, #ffd200, #ff9f0a);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.rs-you { margin: 14px 0 18px; display: flex; flex-wrap: wrap; gap: 10px; }
+.rs-you .kpi { flex: 1; min-width: 106px; border-radius: 9px; background: rgba(255, 255, 255, .055);
+  padding: 9px 11px; }
+.rs-you .kpi label { display: block; font-size: 10px; color: var(--tx-mute); }
+.rs-you .kpi b { font-size: 21px; font-weight: 800; color: #fff; }
+.rs-you .kpi u { font-size: 10px; color: var(--tx-mute); text-decoration: none; margin-left: 2px; }
+#rsTable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+#rsTable th { text-align: left; font-size: 10px; color: var(--tx-mute); font-weight: 600;
+  padding: 6px 8px; border-bottom: 1px solid var(--bd); letter-spacing: .6px; }
+#rsTable td { padding: 6px 8px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+#rsTable tr.me td { background: rgba(255, 210, 0, .12); }
+#rsTable .rk { width: 34px; font-weight: 800; color: var(--gold); }
+.rs-foot { margin-top: 16px; font-size: 12px; color: var(--tx-dim); text-align: center; }
+
+/* ============================ 聊天 ============================ */
+.chat-log { position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 4px; max-width: 260px; }
+.chat-log div { font-size: 11.5px; padding: 4px 10px; border-radius: 12px;
+  background: rgba(14, 18, 25, .78); border: 1px solid var(--bd);
+  animation: fadeIn .2s; }
+.chat-log div b { margin-right: 5px; }
+@keyframes fadeIn { from { opacity: 0; transform: translateX(-8px); } }
+
+/* 聊天快捷语：抬到圆环上方，避免压住圆环的上绿区（那是最关键的提示） */
+.chat-bar { position: absolute; left: 50%; bottom: 216px; transform: translateX(-50%);
+  display: flex; gap: 6px; }
+.chat-bar button {
+  font: inherit; font-size: 11px; padding: 5px 11px; border-radius: 16px; cursor: pointer;
+  background: rgba(20, 26, 35, .9); color: var(--tx); border: 1px solid var(--bd);
+  transition: background .15s;
+}
+.chat-bar button:hover { background: rgba(10, 132, 255, .8); }
+
+/* ============================ 状态角 ============================ */
+.netstat { position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--tx-mute); }
+.netstat i { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); }
+.netstat.ok i { background: var(--green); }
+.netstat.bad i { background: var(--red); }
+/* FPS 挪到右上角，避免和顶部速度横栏重叠 */
+.fps { position: absolute; right: 16px; top: 8px;
+  font-size: 10.5px; color: var(--tx-mute); }
+
+/* 小屏适配 */
+@media (max-width: 1280px) {
+  /* 横栏收窄：次级数据挤掉两侧留白 */
+  .p-speedbar { min-width: 420px; gap: 12px; padding: 7px 14px 8px; }
+  .sb-spd b { font-size: 34px; }
+  .sb-cell b { font-size: 13px; }
+  .sb-sub { font-size: 9px; }
+}
+@media (max-width: 1080px) {
+  .p-stats { width: 158px; top: 88px; }
+  .minimap { width: 128px; height: 128px; }
+  .p-help { display: none; }
+  .p-speedbar { min-width: 0; width: calc(100% - 300px); max-width: 480px; }
+}
+@media (max-width: 860px) {
+  .foot { width: 112px; height: 112px; }
+  .foot canvas { width: 112px; height: 112px; }
+  .drivetrain { width: 300px; }
+  .p-pow { width: 54px; }
+  .pp-v b { font-size: 17px; }
+  .minimap { display: none; }
+  .center-msg b { font-size: 76px; }
+}

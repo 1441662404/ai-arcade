@@ -1,0 +1,23 @@
+{
+  "name": "ai-arcade-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI Arcade —— 七款 3D 网页游戏统一联机门户（多游戏网关 + 反向代理 + 单端口对外）",
+  "license": "MIT",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node build-games.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "three": "^0.186.1",
+    "ws": "^8.18.0",
+    "fflate": "^0.8.2"
+  }
+}
