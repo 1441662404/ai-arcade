@@ -2,11 +2,11 @@
 
 # AI Arcade
 
-**七款能联机的 3D 网页游戏，一个 `npm start` 全部跑起来。**
+**七款能联机的 3D 网页游戏，各自独立，进目录就能跑。**
 
 Node.js + Three.js + WebSocket 权威服务器 · 浏览器直接开打 · 无需安装客户端
 
-![大厅](docs/screenshots/lobby.png)
+![云端之刺](docs/screenshots/sky-dogfight.png)
 
 </div>
 
@@ -14,7 +14,7 @@ Node.js + Three.js + WebSocket 权威服务器 · 浏览器直接开打 · 无�
 
 ## 这是什么
 
-一个用 AI 辅助开发完成的网页游戏合集。七款游戏，七套独立的权威服务器，共用一个门户：打开一个网址，点任何一个游戏就能进房间和人打。
+一个用 AI 辅助开发完成的网页游戏合集。七款游戏，七套独立的权威服务器，**互不依赖** —— 想玩哪款就进哪个目录，不需要大厅、不需要总控服务。
 
 不是 Demo，不是原型。每款都有真实的服务端物理推演、房间匹配和多人同步。
 
@@ -30,40 +30,50 @@ Node.js + Three.js + WebSocket 权威服务器 · 浏览器直接开打 · 无�
 
 ## 快速开始
 
-需要 **Node.js 18+**。
+需要 **Node.js 18+**。每款游戏都是独立项目，进目录即可运行。
 
 ```bash
-cd portal
+cd Nbike              # 换成你想玩的任意游戏目录
 npm install
-node build-games.js    # 从各游戏目录抽取运行时文件到 portal/games/
-npm start              # → http://localhost:5199
+npm start
+# 浏览器打开 http://localhost:3000
 ```
 
-`build-games.js` 会按 `games.config.js` 的 `include` 白名单，把每个游戏「运行时真正需要」的文件复制进 `portal/games/<slug>/`，跳过截图、测试脚本和依赖目录。门户启动后按 slug 拉起各自的服务端子进程，单端口对外反向代理。
+七款的目录与启动方式：
 
-单独跑某一款游戏也可以：
+| 游戏 | 目录 | 依赖 | 默认端口 |
+|---|---|---|---|
+| 云端之刺 | `Cloud Thorn/sky-dogfight` | 需 `npm install` | 3000 |
+| 山道飞骑 | `Nbike` | 需 `npm install` | 3000 |
+| 便便英雄 | `便便英雄` | 需 `npm install` | 3000 |
+| 山路传说 | `山路传说` | 需 `npm install` | 3000 |
+| 足球盛宴 | `足球盛宴` | 需 `npm install` | 3000 |
+| 战火英雄 | `战火英雄` | 需 `npm install` | 3000 |
+| 沉浸驾驶 | `沉浸驾驶` | **零依赖**，`npm start` 直接跑 | 3000 |
+
+因为默认端口都是 3000，**想同时开两款**就指定不同端口：
 
 ```bash
-cd "Cloud Thorn/sky-dogfight" && npm install && npm start
+PORT=3001 npm start
 ```
+
+`沉浸驾驶` 是纯前端应用（无权威服务端），但仍需要一个本地服务器 —— 它的 `index.html` 用了 ES Module，浏览器在 `file://` 下会因 CORS 拒绝加载 Three.js，所以附了一个零依赖静态服务器。
+
+## 各款的独立性
+
+七款之间没有任何代码依赖，可以单独拿走任意一款：
+
+- 每款自带 `package.json`、入口文件和依赖声明
+- 想拆成独立仓库，直接把对应目录 `git init` 即可
+- 想部署，每款就是一个普通 Node 应用（`沉浸驾驶` 是纯静态）
 
 ## 技术架构
 
 ```
-                    ┌─────────────────────────────┐
-   浏览器 ─────────▶│  portal (Express, :5199)     │
-                    │  · 大厅与游戏路由             │
-                    │  · /play/:slug 反向代理       │
-                    │  · 按需拉起子进程             │
-                    └──────────┬──────────────────┘
-                               │
-        ┌──────────┬───────────┼───────────┬──────────┐
-        ▼          ▼           ▼           ▼          ▼
-   sky-dogfight  nbike    mountain-pass  soccer    sfh ...
-   (Socket.IO)  (ws)       (原生 ws)    (Socket.IO) ...
-        │          │           │           │          │
-        └──────────┴───── 权威服务端 ──────┴──────────┘
-              物理与命中判定都在服务端，客户端只做渲染与预测
+   浏览器 ◀──── WebSocket ────▶ 游戏服务端（每款一个独立进程）
+                                    │
+                            权威结算：位置 / 碰撞 / 命中
+                            客户端只发输入，做插值与预测
 ```
 
 共同的设计取舍：
@@ -77,20 +87,15 @@ cd "Cloud Thorn/sky-dogfight" && npm install && npm start
 
 ```
 .
-├── portal/                  # 门户：大厅、路由、反向代理、子进程管理
-│   ├── games.config.js      # 游戏注册表（唯一数据源）
-│   └── build-games.js       # 从各项目抽取运行时文件
-├── Cloud Thorn/             # 云端之刺（空战）
-├── Nbike/                   # 山道飞骑（自行车竞速）
-├── 便便英雄/                 # Poop Hero（竞技场乱斗）
-├── 山路传说/                 # Mountain Pass Legend（漂移夜战）
-├── 足球盛宴/                 # Violent Soccer（足球对抗）
-├── 战火英雄/                 # Strike Force Heroes（横版射击）
-├── 沉浸驾驶/                 # Immersive Drive（单机第一人称驾驶）
-└── docs/screenshots/        # README 配图
+├── Cloud Thorn/sky-dogfight/   # 云端之刺（空战）
+├── Nbike/                      # 山道飞骑（自行车竞速）
+├── 便便英雄/                    # Poop Hero（竞技场乱斗）
+├── 山路传说/                    # Mountain Pass Legend（漂移夜战）
+├── 足球盛宴/                    # Violent Soccer（足球对抗）
+├── 战火英雄/                    # Strike Force Heroes（横版射击）
+├── 沉浸驾驶/                    # Immersive Drive（单机座舱驾驶）
+└── docs/screenshots/           # README 配图
 ```
-
-每个游戏目录都是独立的 Node 项目，可以单独 `npm start`，也可以被门户托管。
 
 ## 关于 AI 开发
 

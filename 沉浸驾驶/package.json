@@ -1,0 +1,14 @@
+{
+  "name": "immersive-drive",
+  "version": "1.0.0",
+  "private": true,
+  "description": "沉浸驾驶 —— 第一人称座舱山路驾驶（Three.js 纯前端，零服务端依赖）",
+  "license": "MIT",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
