@@ -6,68 +6,140 @@
 
 Node.js + Three.js + WebSocket 权威服务器 · 浏览器直接开打 · 无需安装客户端
 
-[English](README.en.md) | 简体中文
-
-![云端之刺](docs/screenshots/sky-dogfight.png)
+[English](README.en.md) | 简体中文 · [在线试玩](https://1441662404.github.io/ai-arcade/)
 
 </div>
 
 ---
 
-## 这是什么
+## 七款游戏
 
-一个用 AI 辅助开发完成的网页游戏合集。七款游戏，七套独立的权威服务器，**互不依赖** —— 想玩哪款就进哪个目录，不需要大厅、不需要总控服务。
+### ✈ 云端之刺 · Sky Dogfight
 
-不是 Demo，不是原型。每款都有真实的服务端物理推演、房间匹配和多人同步。
+![云端之刺](docs/screenshots/sky-dogfight.png)
 
-| 游戏 | 类型 | 人数 | 技术看点 |
-|---|---|---|---|
-| ✈ **云端之刺**<br>Sky Dogfight | 空战 · 团队对抗 | 2–16 | 服务端逐帧同步飞行动力学，滚转/失速/机炮按真机手感调校；可换乘舰船下海 |
-| 🚴 **山道飞骑**<br>Nbike Alpine | 自行车 · 竞速 | 2–12 | 环法式山道速降，摇车、卡位、跟车吸尾流，坡度与空气阻力由服务端推演 |
-| 💩 **便便英雄**<br>Poop Hero | 竞技场 · 乱斗 | 2–12 | 3D 竞技场混战，60Hz 逻辑帧做命中判定，翻滚闪避逐帧计算 |
-| 🏁 **山路传说 · 雾见山夜战**<br>Mountain Pass Legend | 漂移 · 夜战 | 2–10 | 零依赖自研 WebSocket 同步，轮胎打滑与惯性漂移在服务器演算 |
-| ⚽ **足球盛宴**<br>Violent Soccer | 足球 · 对抗 | 2–12 | 30Hz 权威主循环驱动球体物理，支持观战与语音 |
-| 🪖 **战火英雄**<br>Strike Force Heroes | 横版射击 · 组队 | 2–12 | 四大兵种、数十种枪械、三张多层地图，60Hz 权威推演 |
-| 🚗 **沉浸驾驶**<br>Immersive Drive | 驾驶 · 单机 | 1 | 第一人称座舱，仪表、方向盘、后视镜实时联动，内置 Eurobeat 电台 |
+**空战 · 团队对抗 · 2–16 人**
+
+驾驶战机在云海之上缠斗，也可换乘舰船下海作战。权威服务器逐帧同步飞行物理，滚转、失速、机炮与导弹都按真机手感调校。
+
+```bash
+cd "Cloud Thorn/sky-dogfight" && npm install && npm start
+```
+
+---
+
+### 🚴 山道飞骑 · Nbike Alpine
+
+![山道飞骑](docs/screenshots/nbike.png)
+
+**自行车竞速 · 2–12 人**
+
+写实风环法式山道速降。摇车、卡位、跟车吸尾流，坡道地形与空气阻力全部由服务端物理推演，冲线那一刻才见分晓。
+
+```bash
+cd Nbike && npm install && npm start
+```
+
+---
+
+### 💩 便便英雄 · Poop Hero
+
+![便便英雄](docs/screenshots/poop-hero.png)
+
+**竞技场乱斗 · 2–12 人**
+
+3D 竞技场混战，跳跃、冲刺、投掷与技能连招。服务端 60Hz 逻辑帧负责命中判定，翻滚闪避的每一帧都算数。
+
+```bash
+cd 便便英雄 && npm install && npm start
+```
+
+---
+
+### 🏁 山路传说 · Mountain Pass Legend
+
+![山路传说](docs/screenshots/mountain-pass.png)
+
+**漂移夜战 · 2–10 人**
+
+雾见山下坡夜战。零依赖自研 WebSocket 同步，轮胎打滑与惯性漂移都在服务器演算，五连发夹弯见真章。
+
+```bash
+cd 山路传说 && npm install && npm start
+```
+
+---
+
+### ⚽ 足球盛宴 · Violent Soccer
+
+![足球盛宴](docs/screenshots/soccer.png)
+
+**足球对抗 · 2–12 人**
+
+3D 第三人称暴力足球，铲抢、冲撞、倒钩样样来。30Hz 权威主循环驱动的球体物理，支持观战与语音。
+
+```bash
+cd 足球盛宴 && npm install && npm start
+```
+
+---
+
+### 🪖 战火英雄 · Strike Force Heroes
+
+![战火英雄](docs/screenshots/sfh.png)
+
+**横版射击 · 2–12 人**
+
+经典 2D 横版射击。四大兵种、数十种枪械、三张多层地图。服务端权威 60Hz 推演，最多 12 人同房，支持 5 人组队开黑。
+
+```bash
+cd 战火英雄 && npm install && npm start
+```
+
+---
+
+### 🚗 沉浸驾驶 · Immersive Drive
+
+![沉浸驾驶](docs/screenshots/immersive-drive.png)
+
+**第一人称座舱 · 单机**
+
+第一人称座舱视角的山路驾驶体验，仪表、方向盘与后视镜实时联动，电台可选 Eurobeat 歌单。**纯前端应用，唯一可以在线玩的一款。**
+
+[**▶ 在线试玩**](https://1441662404.github.io/ai-arcade/drive/) 或者本地：
+
+```bash
+cd 沉浸驾驶 && npm start
+```
+
+---
 
 ## 快速开始
 
 需要 **Node.js 18+**。每款游戏都是独立项目，进目录即可运行。
 
 ```bash
-cd Nbike              # 换成你想玩的任意游戏目录
+cd Nbike              # 换成你想玩的任意目录
 npm install
 npm start
 # 浏览器打开 http://localhost:3000
 ```
 
-七款的目录与启动方式：
+| 游戏 | 目录 | 依赖 |
+|---|---|---|
+| 云端之刺 | `Cloud Thorn/sky-dogfight` | 需 `npm install` |
+| 山道飞骑 | `Nbike` | 需 `npm install` |
+| 便便英雄 | `便便英雄` | 需 `npm install` |
+| 山路传说 | `山路传说` | 需 `npm install` |
+| 足球盛宴 | `足球盛宴` | 需 `npm install` |
+| 战火英雄 | `战火英雄` | 需 `npm install` |
+| 沉浸驾驶 | `沉浸驾驶` | **零依赖**，直接 `npm start` |
 
-| 游戏 | 目录 | 依赖 | 默认端口 |
-|---|---|---|---|
-| 云端之刺 | `Cloud Thorn/sky-dogfight` | 需 `npm install` | 3000 |
-| 山道飞骑 | `Nbike` | 需 `npm install` | 3000 |
-| 便便英雄 | `便便英雄` | 需 `npm install` | 3000 |
-| 山路传说 | `山路传说` | 需 `npm install` | 3000 |
-| 足球盛宴 | `足球盛宴` | 需 `npm install` | 3000 |
-| 战火英雄 | `战火英雄` | 需 `npm install` | 3000 |
-| 沉浸驾驶 | `沉浸驾驶` | **零依赖**，`npm start` 直接跑 | 3000 |
-
-因为默认端口都是 3000，**想同时开两款**就指定不同端口：
+默认端口都是 3000。想同时开两款，用 `PORT` 区分：
 
 ```bash
 PORT=3001 npm start
 ```
-
-`沉浸驾驶` 是纯前端应用（无权威服务端），但仍需要一个本地服务器 —— 它的 `index.html` 用了 ES Module，浏览器在 `file://` 下会因 CORS 拒绝加载 Three.js，所以附了一个零依赖静态服务器。
-
-## 各款的独立性
-
-七款之间没有任何代码依赖，可以单独拿走任意一款：
-
-- 每款自带 `package.json`、入口文件和依赖声明
-- 想拆成独立仓库，直接把对应目录 `git init` 即可
-- 想部署，每款就是一个普通 Node 应用（`沉浸驾驶` 是纯静态）
 
 ## 技术架构
 
@@ -96,7 +168,7 @@ PORT=3001 npm start
 ├── 足球盛宴/                    # Violent Soccer（足球对抗）
 ├── 战火英雄/                    # Strike Force Heroes（横版射击）
 ├── 沉浸驾驶/                    # Immersive Drive（单机座舱驾驶）
-└── docs/screenshots/           # README 配图
+└── docs/                       # 展示页与截图（GitHub Pages 源）
 ```
 
 ## 关于 AI 开发
@@ -114,11 +186,11 @@ PORT=3001 npm start
 **美术与音频素材**：情况较复杂，请务必阅读。
 
 - 部分 3D 模型与动作数据来自公开资源站（Mixamo、Kenney、Quaternius 等）或第三方素材包，**版权归各自原作者**，本仓库仅作技术演示用途分发。
-- `足球盛宴` 的球员庆祝语音、以及指向真实球员的模型，**已从仓库中移除**。想恢复该功能，请自行准备音频放入 `足球盛宴/audio/`，命名 `cheer-1.mp3` 与 `cheer-2.mp3`（代码中缺失文件会静默跳过，不影响游戏运行）。
+- `足球盛宴` 的球员庆祝语音、指向真实球员的模型、以及球衣上的赞助商与俱乐部队徽，**均已移除或替换**。想恢复语音，请自行放入 `足球盛宴/audio/cheer-1.mp3` 与 `cheer-2.mp3`（文件缺失时静默跳过，不影响运行）。
 - `山路传说` 中的车辆模型为独立 3D 资产，与任何动漫、影视作品无关；游戏名、地名、车手名、车型代号均已原创化。
 - 若您是权利人，认为某处素材使用不当，请开 issue 或联系维护者，我们会立即移除。
 
-**这是什么意思**：你可以放心用这些代码，但**不要直接商用里面的美术资源**。要商用请替换成自有素材。
+**结论**：代码可以放心用，美术资源请自行确认授权后再商用。
 
 ---
 

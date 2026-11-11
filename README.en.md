@@ -4,7 +4,7 @@
 
 Node.js + Three.js + authoritative WebSocket servers · no client install · no build step
 
-[中文](README.md) | English
+[中文](README.md) | English · [Play online](https://1441662404.github.io/ai-arcade/drive/)
 
 ![Sky Dogfight](docs/screenshots/sky-dogfight.png)
 
@@ -57,7 +57,7 @@ PORT=3001 npm start
 
 ## Try it online
 
-`Immersive Drive` runs on GitHub Pages — **[play it here](https://1441662404.github.io/ai-arcade/)**.
+`Immersive Drive` runs on GitHub Pages — **[play it here](https://1441662404.github.io/ai-arcade/drive/)**.
 
 The other six need a Node process, so they must be run locally or deployed to a Node host (Vercel, Railway, Fly.io, a VPS).
 

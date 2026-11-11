@@ -4,308 +4,147 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Arcade · 七款 3D 网页游戏</title>
-<meta name="description" content="七款能联机的 3D 网页游戏合集。Node.js + Three.js + 权威服务器，浏览器直接开打。">
+<meta name="description" content="七款用 AI 辅助开发的 3D 网页游戏。Node.js + Three.js，浏览器直接开打。">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  :root {
-    --bg: #08090d;
-    --bg-soft: #0e1015;
-    --line: rgba(255,255,255,.09);
-    --text: #e8eaed;
-    --dim: #8b929e;
-    --accent: #4db6ff;
-  }
-
   body {
-    background: var(--bg);
-    color: var(--text);
+    background: #fff;
+    color: #111827;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
                  "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
   }
 
-  /* 背景光晕 */
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(900px 500px at 12% -8%, rgba(77,182,255,.16), transparent 60%),
-      radial-gradient(800px 460px at 88% 4%, rgba(192,132,252,.13), transparent 60%),
-      radial-gradient(700px 400px at 50% 105%, rgba(126,231,135,.08), transparent 60%);
-    pointer-events: none;
-    z-index: 0;
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 64px 24px 90px;
   }
-
-  .wrap { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 0 24px; }
 
   /* ---------- 头部 ---------- */
-  header {
-    padding: 88px 0 56px;
-    text-align: center;
-  }
-
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
-    border: 1px solid var(--line);
-    border-radius: 100px;
-    font-size: 12.5px;
-    color: var(--dim);
-    background: rgba(255,255,255,.03);
-    margin-bottom: 26px;
-    letter-spacing: .3px;
-  }
-  .badge .dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #34d399;
-    box-shadow: 0 0 10px #34d399;
-  }
-
   h1 {
-    font-size: clamp(38px, 7vw, 68px);
-    font-weight: 800;
-    letter-spacing: -.03em;
-    line-height: 1.08;
-    margin-bottom: 20px;
-    background: linear-gradient(180deg, #fff 20%, #9aa4b2 130%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    margin-bottom: 8px;
   }
 
-  .lede {
-    font-size: clamp(15px, 2vw, 17.5px);
-    color: var(--dim);
-    max-width: 640px;
-    margin: 0 auto 34px;
+  .sub {
+    color: #6b7280;
+    font-size: 14.5px;
+    margin-bottom: 6px;
   }
-  .lede strong { color: var(--text); font-weight: 600; }
 
-  .cta {
+  .note {
+    color: #9ca3af;
+    font-size: 13px;
+    margin-bottom: 40px;
+  }
+
+  /* ---------- 列表 ---------- */
+  .list {
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .row {
     display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 4px;
+    border-bottom: 1px solid #e5e7eb;
+    text-decoration: none;
+    color: inherit;
+    transition: background .15s ease;
+  }
+
+  .row:hover { background: #fafafa; }
+
+  .thumb {
+    width: 128px;
+    height: 72px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid #e5e7eb;
+    background: #f3f4f6;
+  }
+
+  .meta { flex: 1; min-width: 0; }
+
+  .name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .name .en {
+    font-weight: 400;
+    color: #9ca3af;
+    font-size: 13px;
+    margin-left: 6px;
+  }
+
+  .tag {
+    font-size: 12.5px;
+    color: #6b7280;
+  }
+
+  /* ---------- 右侧动作 ---------- */
+  .action {
+    flex-shrink: 0;
+    text-align: right;
   }
 
   .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 26px;
-    border-radius: 10px;
-    font-size: 14.5px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: .18s ease;
-    border: 1px solid transparent;
-  }
-  .btn-primary {
-    background: #e8eaed;
-    color: #08090d;
-  }
-  .btn-primary:hover { background: #fff; transform: translateY(-1px); }
-  .btn-ghost {
-    border-color: var(--line);
-    color: var(--text);
-    background: rgba(255,255,255,.03);
-  }
-  .btn-ghost:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.2); }
-
-  /* ---------- 游戏网格 ---------- */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-    gap: 18px;
-    padding: 20px 0 60px;
-  }
-
-  .card {
-    position: relative;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 26px 26px 24px;
-    background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012));
-    overflow: hidden;
-    transition: .22s ease;
-    display: flex;
-    flex-direction: column;
-    text-decoration: none;
-    color: inherit;
-  }
-
-  .card::before {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--c1, #4db6ff), transparent);
-    opacity: .65;
-  }
-
-  .card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255,255,255,.2);
-    background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
-  }
-
-  .card-glow {
-    position: absolute;
-    top: -60px; right: -60px;
-    width: 180px; height: 180px;
-    border-radius: 50%;
-    background: var(--c1, #4db6ff);
-    opacity: .1;
-    filter: blur(46px);
-    pointer-events: none;
-    transition: .25s ease;
-  }
-  .card:hover .card-glow { opacity: .2; }
-
-  .card-top {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .icon {
-    width: 42px; height: 42px;
-    border-radius: 11px;
-    display: grid;
-    place-items: center;
-    font-size: 20px;
-    background: color-mix(in srgb, var(--c1, #4db6ff) 18%, transparent);
-    border: 1px solid color-mix(in srgb, var(--c1, #4db6ff) 32%, transparent);
-    flex-shrink: 0;
-  }
-
-  .card-name { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
-  .card-en { font-size: 11.5px; color: var(--dim); font-weight: 500; letter-spacing: .4px; text-transform: uppercase; }
-
-  .card-tag {
     display: inline-block;
+    padding: 7px 16px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: .15s ease;
+  }
+
+  .btn-play {
+    background: #2563eb;
+    color: #fff;
+  }
+  .btn-play:hover { background: #1d4ed8; }
+
+  .btn-code {
+    border: 1px solid #e5e7eb;
+    color: #374151;
+    background: #fff;
+  }
+  .btn-code:hover { border-color: #d1d5db; background: #f9fafb; }
+
+  .hint {
     font-size: 11.5px;
-    color: var(--c1, #4db6ff);
-    border: 1px solid color-mix(in srgb, var(--c1, #4db6ff) 30%, transparent);
-    background: color-mix(in srgb, var(--c1, #4db6ff) 10%, transparent);
-    padding: 3px 9px;
-    border-radius: 5px;
-    margin-bottom: 12px;
-    align-self: flex-start;
+    color: #9ca3af;
+    margin-top: 5px;
   }
-
-  .card-desc {
-    font-size: 13.5px;
-    color: var(--dim);
-    line-height: 1.65;
-    margin-bottom: 18px;
-    flex: 1;
-  }
-
-  .card-meta {
-    display: flex;
-    gap: 16px;
-    padding-top: 14px;
-    border-top: 1px solid var(--line);
-    font-size: 12px;
-    color: var(--dim);
-  }
-  .card-meta span { display: flex; align-items: center; gap: 5px; }
-
-  .status {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 9px;
-    border-radius: 5px;
-    letter-spacing: .2px;
-  }
-  .status-live {
-    color: #34d399;
-    background: rgba(52,211,153,.12);
-    border: 1px solid rgba(52,211,153,.28);
-  }
-  .status-local {
-    color: #fbbf24;
-    background: rgba(251,191,36,.1);
-    border: 1px solid rgba(251,191,36,.24);
-  }
-
-  /* ---------- 启动说明 ---------- */
-  .section-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--dim);
-    letter-spacing: 1.4px;
-    text-transform: uppercase;
-    margin-bottom: 18px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .section-title::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--line);
-  }
-
-  .howto {
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    background: var(--bg-soft);
-    overflow: hidden;
-    margin-bottom: 70px;
-  }
-
-  .howto-head {
-    padding: 16px 22px;
-    border-bottom: 1px solid var(--line);
-    font-size: 13px;
-    color: var(--dim);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .howto-head code {
-    color: var(--accent);
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-size: 12.5px;
-  }
-
-  pre {
-    padding: 22px;
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13.5px;
-    line-height: 1.85;
-    overflow-x: auto;
-    color: #c9d1d9;
-  }
-  pre .cmt { color: #57606a; }
-  pre .cmd { color: #7ee787; }
-  pre .arg { color: #ffa657; }
 
   /* ---------- 页脚 ---------- */
   footer {
-    border-top: 1px solid var(--line);
-    padding: 36px 0 60px;
-    text-align: center;
+    margin-top: 44px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e7eb;
     font-size: 13px;
-    color: var(--dim);
+    color: #9ca3af;
   }
-  footer a { color: var(--dim); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.16); }
-  footer a:hover { color: var(--text); }
+  footer a { color: #2563eb; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
 
-  @media (max-width: 720px) {
-    header { padding: 60px 0 40px; }
-    .grid { grid-template-columns: 1fr; gap: 14px; }
-    .card { padding: 22px; }
+  @media (max-width: 620px) {
+    .wrap { padding: 40px 18px 60px; }
+    h1 { font-size: 24px; }
+    .thumb { width: 84px; height: 48px; }
+    .name .en { display: block; margin-left: 0; }
+    .btn { padding: 6px 12px; font-size: 12px; }
+    .hint { display: none; }
   }
 </style>
 </head>
@@ -313,199 +152,105 @@
 
 <div class="wrap">
 
-  <header>
-    <div class="badge"><span class="dot"></span> 7 款游戏 · 全部开源 · MIT</div>
-    <h1>AI Arcade</h1>
-    <p class="lede">
-      七款能联机的 <strong>3D 网页游戏</strong>。Node.js + Three.js + WebSocket 权威服务器，
-      浏览器直接开打，无需安装客户端。
-    </p>
-    <div class="cta">
-      <a class="btn btn-primary" href="./drive/">▶ 立即试玩（沉浸驾驶）</a>
-      <a class="btn btn-ghost" href="https://github.com/1441662404/ai-arcade" target="_blank" rel="noopener">
-        查看源码
-      </a>
-    </div>
-  </header>
+  <h1>AI Arcade</h1>
+  <p class="sub">七款用 AI 辅助开发的 3D 网页游戏 · Node.js + Three.js + 权威服务器</p>
+  <p class="note">只有「沉浸驾驶」是纯前端，可以直接在线玩；其余六款需要 Node 服务端，在本地一行命令启动。</p>
 
-  <div class="grid">
+  <div class="list">
 
-    <a class="card" href="https://github.com/1441662404/ai-arcade/tree/main/Cloud%20Thorn/sky-dogfight"
-       target="_blank" rel="noopener" style="--c1:#4db6ff">
-      <div class="card-glow"></div>
-      <div class="card-top">
-        <div class="icon">✈</div>
-        <div>
-          <div class="card-name">云端之刺</div>
-          <div class="card-en">Sky Dogfight</div>
-        </div>
+    <a class="row" href="https://github.com/1441662404/ai-arcade/tree/main/Cloud%20Thorn/sky-dogfight" target="_blank" rel="noopener">
+      <img class="thumb" src="./screenshots/sky-dogfight.png" alt="云端之刺" loading="lazy">
+      <div class="meta">
+        <div class="name">云端之刺<span class="en">Sky Dogfight</span></div>
+        <div class="tag">空战 · 团队对抗 · 2–16 人</div>
       </div>
-      <div class="card-tag">空战 · 团队对抗</div>
-      <p class="card-desc">
-        驾驶战机在云海之上缠斗，也可换乘舰船下海作战。
-        权威服务器逐帧同步飞行物理，滚转、失速、机炮与导弹都按真机手感调校。
-      </p>
-      <div class="card-meta">
-        <span>👥 2–16 人</span>
-        <span class="status status-local">需本地运行</span>
+      <div class="action">
+        <span class="btn btn-code">源码</span>
+        <div class="hint">需本地运行</div>
       </div>
     </a>
 
-    <a class="card" href="https://github.com/1441662404/ai-arcade/tree/main/Nbike"
-       target="_blank" rel="noopener" style="--c1:#7ee787">
-      <div class="card-glow"></div>
-      <div class="card-top">
-        <div class="icon">🚴</div>
-        <div>
-          <div class="card-name">山道飞骑</div>
-          <div class="card-en">Nbike Alpine</div>
-        </div>
+    <a class="row" href="https://github.com/1441662404/ai-arcade/tree/main/Nbike" target="_blank" rel="noopener">
+      <img class="thumb" src="./screenshots/nbike.png" alt="山道飞骑" loading="lazy">
+      <div class="meta">
+        <div class="name">山道飞骑<span class="en">Nbike Alpine</span></div>
+        <div class="tag">自行车竞速 · 2–12 人</div>
       </div>
-      <div class="card-tag">自行车 · 竞速</div>
-      <p class="card-desc">
-        写实风环法式山道速降。摇车、卡位、跟车吸尾流，
-        坡道地形与空气阻力全部由服务端物理推演。
-      </p>
-      <div class="card-meta">
-        <span>👥 2–12 人</span>
-        <span class="status status-local">需本地运行</span>
+      <div class="action">
+        <span class="btn btn-code">源码</span>
+        <div class="hint">需本地运行</div>
       </div>
     </a>
 
-    <a class="card" href="https://github.com/1441662404/ai-arcade/tree/main/%E4%BE%BF%E4%BE%BF%E8%8B%B1%E9%9B%84"
-       target="_blank" rel="noopener" style="--c1:#c084fc">
-      <div class="card-glow"></div>
-      <div class="card-top">
-        <div class="icon">💩</div>
-        <div>
-          <div class="card-name">便便英雄</div>
-          <div class="card-en">Poop Hero</div>
-        </div>
+    <a class="row" href="https://github.com/1441662404/ai-arcade/tree/main/%E4%BE%BF%E4%BE%BF%E8%8B%B1%E9%9B%84" target="_blank" rel="noopener">
+      <img class="thumb" src="./screenshots/poop-hero.png" alt="便便英雄" loading="lazy">
+      <div class="meta">
+        <div class="name">便便英雄<span class="en">Poop Hero</span></div>
+        <div class="tag">竞技场乱斗 · 2–12 人</div>
       </div>
-      <div class="card-tag">竞技场 · 乱斗</div>
-      <p class="card-desc">
-        3D 竞技场混战，跳跃、冲刺、投掷与技能连招。
-        服务端 60Hz 逻辑帧负责命中判定，翻滚闪避的每一帧都算数。
-      </p>
-      <div class="card-meta">
-        <span>👥 2–12 人</span>
-        <span class="status status-local">需本地运行</span>
+      <div class="action">
+        <span class="btn btn-code">源码</span>
+        <div class="hint">需本地运行</div>
       </div>
     </a>
 
-    <a class="card" href="https://github.com/1441662404/ai-arcade/tree/main/%E5%B1%B1%E8%B7%AF%E4%BC%A0%E8%AF%B4"
-       target="_blank" rel="noopener" style="--c1:#ff6a2a">
-      <div class="card-glow"></div>
-      <div class="card-top">
-        <div class="icon">🏁</div>
-        <div>
-          <div class="card-name">山路传说</div>
-          <div class="card-en">Mountain Pass Legend</div>
-        </div>
+    <a class="row" href="https://github.com/1441662404/ai-arcade/tree/main/%E5%B1%B1%E8%B7%AF%E4%BC%A0%E8%AF%B4" target="_blank" rel="noopener">
+      <img class="thumb" src="./screenshots/mountain-pass.png" alt="山路传说" loading="lazy">
+      <div class="meta">
+        <div class="name">山路传说<span class="en">Mountain Pass Legend</span></div>
+        <div class="tag">漂移夜战 · 2–10 人</div>
       </div>
-      <div class="card-tag">漂移 · 夜战</div>
-      <p class="card-desc">
-        雾见山下坡夜战。零依赖自研 WebSocket 同步，
-        轮胎打滑与惯性漂移都在服务器演算，五连发夹弯见真章。
-      </p>
-      <div class="card-meta">
-        <span>👥 2–10 人</span>
-        <span class="status status-local">需本地运行</span>
+      <div class="action">
+        <span class="btn btn-code">源码</span>
+        <div class="hint">需本地运行</div>
       </div>
     </a>
 
-    <a class="card" href="https://github.com/1441662404/ai-arcade/tree/main/%E8%B6%B3%E7%90%83%E7%9B%9B%E5%AE%B4"
-       target="_blank" rel="noopener" style="--c1:#38bdf8">
-      <div class="card-glow"></div>
-      <div class="card-top">
-        <div class="icon">⚽</div>
-        <div>
-          <div class="card-name">足球盛宴</div>
-          <div class="card-en">Violent Soccer</div>
-        </div>
+    <a class="row" href="https://github.com/1441662404/ai-arcade/tree/main/%E8%B6%B3%E7%90%83%E7%9B%9B%E5%AE%B4" target="_blank" rel="noopener">
+      <img class="thumb" src="./screenshots/soccer.png" alt="足球盛宴" loading="lazy">
+      <div class="meta">
+        <div class="name">足球盛宴<span class="en">Violent Soccer</span></div>
+        <div class="tag">足球对抗 · 2–12 人</div>
       </div>
-      <div class="card-tag">足球 · 对抗</div>
-      <p class="card-desc">
-        3D 第三人称暴力足球，铲抢、冲撞、倒钩样样来。
-        30Hz 权威主循环驱动的球体物理，支持观战与语音。
-      </p>
-      <div class="card-meta">
-        <span>👥 2–12 人</span>
-        <span class="status status-local">需本地运行</span>
+      <div class="action">
+        <span class="btn btn-code">源码</span>
+        <div class="hint">需本地运行</div>
       </div>
     </a>
 
-    <a class="card" href="https://github.com/1441662404/ai-arcade/tree/main/%E6%88%98%E7%81%AB%E8%8B%B1%E9%9B%84"
-       target="_blank" rel="noopener" style="--c1:#ff8a3d">
-      <div class="card-glow"></div>
-      <div class="card-top">
-        <div class="icon">🪖</div>
-        <div>
-          <div class="card-name">战火英雄</div>
-          <div class="card-en">Strike Force Heroes</div>
-        </div>
+    <a class="row" href="https://github.com/1441662404/ai-arcade/tree/main/%E6%88%98%E7%81%AB%E8%8B%B1%E9%9B%84" target="_blank" rel="noopener">
+      <img class="thumb" src="./screenshots/sfh.png" alt="战火英雄" loading="lazy">
+      <div class="meta">
+        <div class="name">战火英雄<span class="en">Strike Force Heroes</span></div>
+        <div class="tag">横版射击 · 2–12 人</div>
       </div>
-      <div class="card-tag">横版射击 · 组队</div>
-      <p class="card-desc">
-        经典 2D 横版射击。四大兵种、数十种枪械、三张多层地图。
-        服务端权威 60Hz 推演，最多 12 人同房。
-      </p>
-      <div class="card-meta">
-        <span>👥 2–12 人</span>
-        <span class="status status-local">需本地运行</span>
+      <div class="action">
+        <span class="btn btn-code">源码</span>
+        <div class="hint">需本地运行</div>
       </div>
     </a>
 
-    <a class="card" href="./drive/" style="--c1:#f472b6">
-      <div class="card-glow"></div>
-      <div class="card-top">
-        <div class="icon">🚗</div>
-        <div>
-          <div class="card-name">沉浸驾驶</div>
-          <div class="card-en">Immersive Drive</div>
-        </div>
+    <a class="row" href="./drive/">
+      <img class="thumb" src="./screenshots/immersive-drive.png" alt="沉浸驾驶" loading="lazy">
+      <div class="meta">
+        <div class="name">沉浸驾驶<span class="en">Immersive Drive</span></div>
+        <div class="tag">第一人称座舱 · 单机</div>
       </div>
-      <div class="card-tag">驾驶 · 单机</div>
-      <p class="card-desc">
-        第一人称座舱视角的山路驾驶体验，仪表、方向盘与后视镜实时联动，
-        电台可选 Eurobeat 歌单。纯前端应用，打开即玩。
-      </p>
-      <div class="card-meta">
-        <span>👤 单机</span>
-        <span class="status status-live">✓ 可在线试玩</span>
+      <div class="action">
+        <span class="btn btn-play">▶ 试玩</span>
       </div>
     </a>
 
   </div>
 
-  <div class="section-title">本地运行任意一款</div>
-
-  <div class="howto">
-    <div class="howto-head">
-      <span>需要 Node.js 18+ · 每款游戏独立，互不依赖</span>
-    </div>
-    <pre><span class="cmt"># 进入任意游戏目录</span>
-<span class="cmd">cd</span> <span class="arg">Nbike</span>
-<span class="cmd">npm</span> install
-<span class="cmd">npm</span> start        <span class="cmt"># → http://localhost:3000</span>
-
-<span class="cmt"># 想同时开两款，用 PORT 指定不同端口</span>
-<span class="cmd">PORT</span>=3001 <span class="cmd">npm</span> start
-
-<span class="cmt"># 沉浸驾驶是纯前端，无需安装依赖</span>
-<span class="cmd">cd</span> <span class="arg">沉浸驾驶</span> <span class="cmt">&amp;&amp;</span> <span class="cmd">npm</span> start</pre>
-  </div>
+  <footer>
+    代码 <a href="https://github.com/1441662404/ai-arcade/blob/main/LICENSE" target="_blank" rel="noopener">MIT 开源</a>
+    · <a href="https://github.com/1441662404/ai-arcade" target="_blank" rel="noopener">GitHub 仓库</a>
+    <br>
+    本地运行：<code>cd Nbike &amp;&amp; npm install &amp;&amp; npm start</code>
+  </footer>
 
 </div>
-
-<footer>
-  <div class="wrap">
-    代码 MIT 开源 · 素材授权说明见
-    <a href="https://github.com/1441662404/ai-arcade#素材与授权" target="_blank" rel="noopener">仓库 README</a>
-    <br><br>
-    七款游戏由 AI 辅助开发，物理参数经反复试玩调校
-  </div>
-</footer>
 
 </body>
 </html>

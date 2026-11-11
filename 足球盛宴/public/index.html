@@ -202,12 +202,27 @@ function showErr(msg) {
   }
   box.textContent = '出错了：\n' + msg;
 }
+/* 音频资源缺失或解码失败不影响游戏逻辑（对应代码已做容错），
+   但 Web Audio 抛的是 Promise 拒绝，会被全局钩子抓成红色报错条挡住界面。
+   这里识别这类错误并静默处理，只留一条 warn。 */
+const isAudioIssue = (m) => /decode audio|EncodingError|Unable to decode|audio\/cheer/i.test(String(m));
+
 addEventListener('error', (e) => {
-  showErr((e.message || 'error') + '\n' + (e.filename || '') + ':' + (e.lineno || '') + (e.error && e.error.stack ? '\n' + e.error.stack : ''));
+  const msg = (e.message || 'error') + '\n' + (e.filename || '') + ':' + (e.lineno || '');
+  if (isAudioIssue(msg) || isAudioIssue(e.filename)) {
+    console.warn('[audio] 音效缺失或无法解码，已跳过');
+    return;
+  }
+  showErr(msg + (e.error && e.error.stack ? '\n' + e.error.stack : ''));
 });
 addEventListener('unhandledrejection', (e) => {
   const r = e.reason;
-  showErr('未捕获的 Promise：\n' + ((r && (r.stack || r.message)) || String(r)));
+  const msg = (r && (r.stack || r.message)) || String(r);
+  if (isAudioIssue(msg)) {
+    console.warn('[audio] 音效缺失或无法解码，已跳过');
+    return;
+  }
+  showErr('未捕获的 Promise：\n' + msg);
 });
 </script>
 </body>
