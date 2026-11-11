@@ -6,6 +6,8 @@
 
 Node.js + Three.js + WebSocket 权威服务器 · 浏览器直接开打 · 无需安装客户端
 
+[English](README.en.md) | 简体中文
+
 ![云端之刺](docs/screenshots/sky-dogfight.png)
 
 </div>

@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  syntax:
+    name: Syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check every server entry
+        run: |
+          set -e
+          n=0
+          while IFS= read -r f; do
+            printf '  checking %s\n' "$f"
+            node --check "$f"
+            n=$((n+1))
+          done < <(find . -name 'server.js' -not -path '*/node_modules/*' -not -path './docs/*')
+          echo "✓ $n entry files passed"
+
+      - name: Check browser bundles
+        run: |
+          set -e
+          n=0
+          while IFS= read -r f; do
+            node --check "$f" >/dev/null 2>&1 || { echo "FAIL: $f"; exit 1; }
+            n=$((n+1))
+          done < <(find . -path '*/public/js/*.js' -not -path '*/node_modules/*' -not -name '*.min.js')
+          echo "✓ $n browser files passed"
+
+      - name: Validate package.json files
+        run: |
+          set -e
+          n=0
+          while IFS= read -r f; do
+            node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" && n=$((n+1))
+          done < <(find . -name 'package.json' -not -path '*/node_modules/*')
+          echo "✓ $n package.json files valid"
