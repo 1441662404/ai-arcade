@@ -10,6 +10,37 @@ import { BetShop } from './shop.js';
 import { Ambulance } from './ambulance.js';
 import { Commentary } from './commentary.js';
 import { Jumbotron } from './jumbotron.js';
+import { createLocalSoccer } from './local-server.js';
+
+/* 单人 / 多人由入口按钮决定；?local=1 时默认单人 */
+let LOCAL_MODE = new URLSearchParams(location.search).has('local');
+let localSoccer = null;
+
+/* 单人：把全局 io() 换成本地实现，join() 里的 socket 流程完全不用改 */
+function installLocalIo() {
+  window.io = function (_url, opts) {
+    const q = (opts && opts.query) || {};
+    localSoccer = createLocalSoccer({ name: q.name, team: q.team });
+    const h = new Map();
+    const s = {
+      id: localSoccer.id,
+      connected: true,
+      on(ev, cb) { if (!h.has(ev)) h.set(ev, []); h.get(ev).push(cb); return s; },
+      emit() {},
+      io: { on() {} },
+      disconnect() {},
+      _fire(ev, d) { const a = h.get(ev); if (a) for (const cb of a) cb(d); },
+    };
+    setTimeout(() => {
+      s._fire('connect');
+      const p = localSoccer.G.players.get(localSoccer.id);
+      s._fire('init', { id: localSoccer.id, team: p ? p.team : 'A' });
+    }, 60);
+    return s;
+  };
+}
+
+if (LOCAL_MODE) installLocalIo();
 import { createPostFX } from './postfx.js';
 
 const SH = window.SHARED;
@@ -1505,6 +1536,13 @@ function loop(now) {
   let dt = (now - last) / 1000;
   last = now;
   if (dt > 0.25) dt = 0.25;
+
+  /* 单人：本地推进权威主循环，并把 tick 末尾那条 state 交给同一套处理 */
+  if (LOCAL_MODE && localSoccer) {
+    localSoccer.tick();
+    const st = localSoccer.takeState();
+    if (st) applyNetState(st);
+  }
 
   /* ★ 开始界面：世界已经建好（enterMenuCam），这里把"会动的东西"推进一步再渲染，
    *   相机交给 menuCam 环绕轨迹 —— 于是选择页背后是**活的球场实时俯视**。

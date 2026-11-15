@@ -320,10 +320,14 @@
   #nick{width:290px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.16);border-radius:10px;color:#fff;
     padding:12px 16px;font-size:15px;font-family:var(--font);outline:none;transition:border-color .2s;text-align:center}
   #nick:focus{border-color:rgba(224,32,21,.65)}
-  #play{background:linear-gradient(180deg,#ff5a42,#c81408);color:#fff;font-weight:800;border:none;
+  .mbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .mbtn{background:linear-gradient(180deg,#ff5a42,#c81408);color:#fff;font-weight:800;border:none;
     border-radius:10px;padding:12px 24px;font-size:15px;cursor:pointer;font-family:var(--font);
-    box-shadow:0 5px 20px rgba(224,32,21,.45);letter-spacing:2px}
-  #play:hover{filter:brightness(1.12)}
+    box-shadow:0 5px 20px rgba(224,32,21,.45);letter-spacing:2px;transition:.2s}
+  .mbtn:hover{filter:brightness(1.12)}
+  .mbtn.ghost{background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.22);box-shadow:none;
+    color:#d7d3cc;font-weight:600;letter-spacing:1px}
+  .mbtn.ghost:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.4)}
   #status{position:absolute;left:50%;bottom:56px;transform:translateX(-50%);font-size:12px;opacity:.55}
   #setbtn{position:absolute;right:26px;bottom:26px;background:rgba(0,0,0,.45);color:#ffd34d;border:1px solid rgba(255,211,77,.35);
     border-radius:10px;padding:9px 16px;font-size:13px;cursor:pointer;font-family:var(--font);letter-spacing:1px;transition:.2s}
@@ -511,9 +515,12 @@
   <div class="mhint">双击人物模型，进入战场</div>
   <div class="mbottom">
     <input id="nick" maxlength="12" placeholder="输入你的名字（默认随机）" />
-    <button id="play">进入战场 ▸</button>
+    <div class="mbtns">
+      <button id="playSolo" class="mbtn">单人游戏 ▸</button>
+      <button id="playMulti" class="mbtn ghost">多人联机</button>
+    </div>
   </div>
-  <div id="status">本地联机 · 屎已备好，等你入场</div>
+  <div id="status">单人模式已就绪 · 多人联机需本地启动服务端</div>
   <button id="setbtn" title="设置">⚙ 设置</button>
 </div>
 

@@ -11,11 +11,16 @@ import { createPostFX } from './hd-postfx.js';
 import { createSky } from './hd-sky.js';
 import { createOcean } from './hd-ocean.js';
 import { createClouds } from './hd-clouds.js';
+import { createLocalWorld } from './local-server.js';
 
 const FP = window.FlightPhysics;
 const SIM = FP.CONFIG;
 const clamp = FP.clamp;
 const lerp = FP.lerp;
+
+/* 单人 / 多人由入口按钮决定；带 ?local=1 时默认单人，便于直接分享单人链接 */
+let LOCAL_MODE = new URLSearchParams(location.search).has('local');
+let localWorld = null;
 
 // =============================================================================
 // === CONFIG === 客户端可调参数（渲染 / 视角 / 输入 / 特效 / 音频 / HUD）======
@@ -5539,11 +5544,26 @@ let sock = null;
 const nowSec = () => performance.now() * 0.001;
 const serverNow = () => nowSec() + game.timeOffset;
 
+/* 单人模式的假 socket：只收集回调，由本地循环按同构格式投喂消息 */
+function makeLocalSock() {
+  const h = new Map();
+  const api = {
+    id: 'local',
+    connected: true,
+    on(ev, cb) { if (!h.has(ev)) h.set(ev, []); h.get(ev).push(cb); return api; },
+    emit() {},
+    io: { on() {} },
+    disconnect() {},
+    _fire(ev, d) { const a = h.get(ev); if (a) for (const cb of a) cb(d); },
+  };
+  return api;
+}
+
 function connect() {
   if (sock) { try { sock.disconnect(); } catch (e) { /* ignore */ } }
   /* ★ 显式开启断线自动重连（云端网络抖动时 socket.io 默认会重连，
      但默认退避较长；这里收紧重连节奏，避免玩家感觉"掉线了再也回不来"）。 */
-  sock = io({
+  sock = LOCAL_MODE ? makeLocalSock() : io({
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: Infinity,
@@ -5617,6 +5637,53 @@ function connect() {
     domJoin.textContent = '重新加入';
     el('menuTip').textContent = '与服务器断开 — 点击重新加入';
   });
+
+  /* ---- 单人：本地建世界，触发一次 welcome，等效于服务端握手 ---- */
+  if (LOCAL_MODE) {
+    try {
+      localWorld = createLocalWorld({
+        name: (domName.value || '').trim() || '玩家',
+        team: 0,
+      });
+      socketIoHook();
+      setTimeout(() => {
+        sock._fire('welcome', {
+          id: localWorld.me.id,
+          name: localWorld.me.name,
+          team: localWorld.me.team,
+          teamName: '蓝队',
+          maxPlayers: localWorld.config.net.maxPlayers,
+          airports: localWorld.airports,
+          time: localWorld.world.time,
+          score: localWorld.world.teamScore,
+          timeLeft: localWorld.timeLeft(),
+          bots: 0,
+        });
+      }, 60);
+    } catch (err) {
+      console.error('[local] 本地世界创建失败', err);
+      el('menuTip') && (el('menuTip').textContent = '单人模式启动失败：' + (err && err.message));
+    }
+  }
+}
+
+/* 单人模式下客户端仍会 emit 一些指令（改名 / 换载具 / 重新出生），
+   这里把常用的几条映射到本地世界，其余忽略 */
+function socketIoHook() {
+  if (!localWorld) return;
+  const rawEmit = sock.emit.bind(sock);
+  sock.emit = (ev, payload) => {
+    try {
+      if (ev === 'input' && payload) localWorld.setInput(payload);
+      else if (ev === 'rename' && payload) localWorld.me.name = String(payload).slice(0, 14);
+      else if (ev === 'vehicle' && payload) localWorld.world.players.get(localWorld.me.id).vehicle = payload;
+      else if (ev === 'respawn') localWorld.reset();
+    } catch (e) { /* ignore */ }
+    return rawEmit(ev, payload);
+  };
+  /* 输入直通本地玩家 */
+  const sendInput = (input) => localWorld.setInput(input);
+  sock._sendInput = sendInput;
 }
 
 function onSnapshot(s) {
@@ -10174,6 +10241,13 @@ function updateCloudImmersion(dt) {
 
 function frame() {
   requestAnimationFrame(frame);
+
+  /* 单人：本地推进权威模拟，并把快照投给同一套 onSnapshot 回调 */
+  if (LOCAL_MODE && localWorld) {
+    localWorld.tick(localWorld.simDt);
+    sock._fire('snap', localWorld.snapshot());
+  }
+
   const t = performance.now() * 0.001;
   let dt = t - lastT;
   lastT = t;
@@ -10359,16 +10433,27 @@ document.querySelectorAll('.vcard').forEach((btn) => {
   });
 });
 
-domJoin.addEventListener('click', () => {
+const domSolo = el('joinSolo');
+
+function startGame(local) {
+  LOCAL_MODE = !!local;
   Sound.init();
   Sound.resume();
   Radio.init();
   game.vehicle = (document.querySelector('.vcard.sel') || {}).dataset ? document.querySelector('.vcard.sel').dataset.v : 'plane';
   connect();
+  if (domSolo) domSolo.disabled = true;
   domJoin.disabled = true;
-  domJoin.textContent = '连接中…';
-  setTimeout(() => { domJoin.disabled = false; domJoin.textContent = '加入战斗'; }, 4000);
-});
+  domJoin.textContent = local ? '准备中…' : '连接中…';
+  setTimeout(() => {
+    domJoin.disabled = false;
+    domJoin.textContent = '多人联机';
+    if (domSolo) domSolo.disabled = false;
+  }, 4000);
+}
+
+domJoin.addEventListener('click', () => startGame(false));
+if (domSolo) domSolo.addEventListener('click', () => startGame(true));
 domName.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') domJoin.click();
 });

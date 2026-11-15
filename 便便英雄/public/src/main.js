@@ -8,8 +8,8 @@ import { createPoopHero, createViewModel, createGrenadeMesh, createRollBallMesh 
 import { FX, SFX, initAudio, makeSplatBlob, toggleMute } from './fx.js';
 import { createLocalGame } from './local-server.js';
 
-/* 单机模式：URL 带 ?local=1 时用浏览器内的本地服务端，不连 WebSocket */
-const LOCAL_MODE = new URLSearchParams(location.search).has('local');
+/* 单机 / 联机由入口按钮决定；带 ?local=1 时默认单机，便于直接分享单人链接 */
+let LOCAL_MODE = new URLSearchParams(location.search).has('local');
 let localGame = null;
 let localAcc = 0;
 
@@ -1411,17 +1411,21 @@ function updateScore() {
   });
 
   // 双击人物模型 = 进入战场
-  cv.addEventListener('dblclick', () => { $('#play').click(); });
+  cv.addEventListener('dblclick', () => { $('#playSolo').click(); });
 })();
 
 // ============================ 启动 ============================
-$('#play').addEventListener('click', async () => {
+async function enterGame(local) {
+  LOCAL_MODE = !!local;
   const nick = $('#nick').value.trim();
-  elStatus.textContent = '正在连接服务器…';
+  elStatus.textContent = local ? '正在准备本地战局…' : '正在连接服务器…';
+  elStatus.style.color = '';
   try {
     await connect();
   } catch (err) {
-    elStatus.textContent = '❌ 连接失败：请先运行 node server.js，再打开 http://localhost:8080';
+    elStatus.textContent = local
+      ? '本地模式启动失败，请刷新页面重试'
+      : '❌ 连接失败：联机需先运行 node server.js；想直接玩请点「单人游戏」';
     elStatus.style.color = '#ff8f7a';
     return;
   }
@@ -1436,7 +1440,10 @@ $('#play').addEventListener('click', async () => {
   // 等待场景构建
   const wait = setInterval(() => { if (scene) { clearInterval(wait); } }, 100);
   if (!loop._started) { loop._started = true; requestAnimationFrame(loop); }
-});
+}
+
+$('#playSolo').addEventListener('click', () => enterGame(true));
+$('#playMulti').addEventListener('click', () => enterGame(false));
 
 // 页面关闭时释放鼠标锁
 addEventListener('beforeunload', () => { if (ws) ws.close(); });
