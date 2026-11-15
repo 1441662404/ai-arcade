@@ -2120,6 +2120,38 @@ function syncShipMeshes(dt, t) {
     }
     m.lastYaw = v.h;
 
+    /* ---- 舰体受损表现：烟 + 火 ----
+     * 此前只有炮塔会被打掉（e.gh 分模块损毁），舰体本身挨了几十发
+     * 从外观上看和刚下水没有区别。这里按血量比例补上持续损伤：
+     *   65% 以下开始冒烟，35% 以下烟更浓并起火。 */
+    if (e.al && !(e.wn > 0)) {
+      const hpRatio = e.mx ? (e.hp / e.mx) : 1;
+      if (hpRatio < 0.65) {
+        const heavy = hpRatio < 0.35;
+        if (Math.random() < (heavy ? 0.85 : 0.45)) {
+          const spread = 5 + (1 - hpRatio) * 9;
+          pSmoke.spawn({
+            x: v.p.x + (Math.random() - 0.5) * spread,
+            y: v.p.y + 5 + Math.random() * 3,
+            z: v.p.z + (Math.random() - 0.5) * spread * 2.2,
+            vx: (Math.random() - 0.5) * 4, vy: 7 + Math.random() * 6, vz: (Math.random() - 0.5) * 4,
+            life: 2.6, s0: 4, s1: 20, alpha: heavy ? 0.42 : 0.26, drag: 0.4, gravity: -1,
+            r: 0.11, g: 0.10, b: 0.10,
+          });
+        }
+        if (heavy && Math.random() < 0.35) {
+          pFire.spawn({
+            x: v.p.x + (Math.random() - 0.5) * 8,
+            y: v.p.y + 3 + Math.random() * 4,
+            z: v.p.z + (Math.random() - 0.5) * 14,
+            vx: 0, vy: 8 + Math.random() * 8, vz: 0,
+            life: 0.9, s0: 2.4, s1: 0.6,
+            r: 1.0, g: 0.55, b: 0.18,
+          });
+        }
+      }
+    }
+
     // ---- 主炮塔：方位/俯仰/后坐/炮口焰/损毁 ----
     if (e.gy) {
       for (let i = 0; i < m.turrets.length; i++) {
@@ -6020,6 +6052,11 @@ function handleEvent(e) {
     case 'shiphit': {
       // 命中舰体：爆炸 + 水柱（若近水线）+ 声音
       spawnExplosion(e.p[0], e.p[1], e.p[2], e.big ? 1.15 : 0.6);
+      /* 近水线命中：弹着点贴近吃水线时，除了爆炸还应该砸起一道水柱。
+         之前注释写了这一条但没实现，近距离看就是"干炸"——少了海战最直观的那一下。 */
+      if (e.p[1] < 5) {
+        fxShellSplash({ p: [e.p[0], 0, e.p[2]], big: e.big ? 1 : 0 });
+      }
       // 命中即暴露：打中我舰的敌舰暴露 12s（比开火暴露更久——它已经锁死你了）
       if (e.tgt === game.myShipId && e.by) game.shipSpotted.set(e.by, nowSec() + 12);
       // 舰体受击震动：几千吨的船被 406mm 命中会整体抖一下，
